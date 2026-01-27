@@ -174,7 +174,8 @@ export default function TimesPage() {
       {loading ? (
         <SkeletonTable rows={5} />
       ) : (
-      /* Table - Using theme-aware colors */
+      <>
+      {/* Table - Using theme-aware colors */}
       <div className="rounded-xl border border-border overflow-hidden">
         <table className="w-full">
           <thead>
@@ -296,6 +297,7 @@ export default function TimesPage() {
           onPageChange={setCurrentPage}
         />
       )}
+      </>
       )}
     </div>
   )

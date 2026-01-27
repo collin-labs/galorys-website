@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { teams, getTeamBySlug, getFeaturedTeams } from '@/data/teams'
-import { getPlayersByTeam } from '@/data/players'
-import { getAchievementsByTeam } from '@/data/achievements'
+import { teams, getTeamBySlug, getFeaturedTeams } from '@/lib/data/teams'
+import { getPlayersByTeam } from '@/lib/data/players'
 
 // GET /api/teams - Lista todos os times
 export async function GET(request: Request) {
@@ -18,14 +17,12 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Time não encontrado' }, { status: 404 })
       }
       
-      // Incluir jogadores e conquistas
+      // Incluir jogadores
       const players = getPlayersByTeam(slug)
-      const achievements = getAchievementsByTeam(slug)
       
       return NextResponse.json({
         ...team,
         players,
-        achievements,
       })
     }
 

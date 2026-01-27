@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { players, getPlayerBySlug, getPlayersByTeam, getFeaturedPlayers } from '@/data/players'
+import { players, getPlayerBySlug, getPlayersByTeam, getFeaturedPlayers } from '@/lib/data/players'
 
 // GET /api/players - Lista todos os jogadores
 export async function GET(request: Request) {

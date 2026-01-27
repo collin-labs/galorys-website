@@ -122,7 +122,8 @@ export default function JogadoresPage() {
       {loading ? (
         <SkeletonTable rows={5} />
       ) : (
-      /* Table */
+      <>
+      {/* Table */}
       <div className="rounded-xl border border-border overflow-hidden">
         <table className="w-full">
           <thead>
@@ -198,6 +199,7 @@ export default function JogadoresPage() {
           onPageChange={setCurrentPage}
         />
       )}
+      </>
       )}
     </div>
   )
