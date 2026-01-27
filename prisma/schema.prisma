@@ -1,0 +1,548 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String             @id @default(cuid())
+  name          String?
+  email         String?            @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String             @default("USER")
+  points        Int                @default(0)
+  banned        Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  accounts      Account[]
+  activities    Activity[]
+  favorites     Favorite[]
+  sessions      Session[]
+  notifications UserNotification[]
+  rewards       UserReward[]
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  points      Int      @default(0)
+  description String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Team {
+  id              String        @id @default(cuid())
+  name            String
+  slug            String        @unique
+  game            String
+  description     String?
+  longDescription String?
+  logo            String?
+  banner          String?
+  color           String?       // Gradiente CSS (ex: "from-orange-500 to-yellow-500")
+  bgColor         String?       // Cor de fundo
+  textColor       String?       // Cor do texto
+  badge           String?       // Badge especial (ex: "INCLUSIVO")
+  shortName       String?       // Nome curto
+  gameLabel       String?       // Label do jogo
+  playersCount    Int           @default(0)
+  titlesCount     Int           @default(0)
+  foundedYear     String?       // Ano de fundação
+  active          Boolean       @default(true)
+  order           Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  achievements    Achievement[]
+  favorites       Favorite[]
+  matches         Match[]
+  players         Player[]
+  eliteTeam       EliteTeam?
+}
+
+model Player {
+  id        String     @id @default(cuid())
+  nickname  String
+  realName  String?
+  slug      String     @unique
+  photo     String?
+  role      String?
+  bio       String?
+  teamId    String
+  joinedAt  DateTime   @default(now())
+  active    Boolean    @default(true)
+  twitter   String?
+  instagram String?
+  twitch    String?
+  youtube   String?
+  tiktok    String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  favorites Favorite[]
+  team      Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  featuredPlayer FeaturedPlayer?
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  placement   String
+  tournament  String
+  date        DateTime
+  image       String?
+  teamId      String
+  featured    Boolean  @default(false)
+  featuredOrder Int?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model Match {
+  id           String   @id @default(cuid())
+  opponent     String
+  opponentLogo String?
+  date         DateTime
+  streamUrl    String?
+  result       String?
+  isLive       Boolean  @default(false)
+  teamId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  teamId    String?
+  playerId  String?
+  createdAt DateTime @default(now())
+  player    Player?  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team      Team?    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+  @@unique([userId, playerId])
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?
+  image     String
+  link      String?
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RobloxGame {
+  id         String   @id @default(cuid())
+  universeId String   @unique
+  name       String
+  order      Int      @default(0)
+  featured   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model RobloxGroup {
+  id        String   @id @default(cuid())
+  groupId   String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Reward {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  type        String
+  cost        Int
+  image       String?
+  downloadUrl String?
+  quantity    Int?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  userRewards UserReward[]
+}
+
+model UserReward {
+  id         String   @id @default(cuid())
+  userId     String
+  rewardId   String
+  redeemedAt DateTime @default(now())
+  reward     Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, rewardId])
+}
+
+model UserNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Wallpaper {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  image       String
+  downloadUrl String
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  read      Boolean  @default(false)
+  starred   Boolean  @default(false)
+  archived  Boolean  @default(false)
+  deleted   Boolean  @default(false)
+  deletedAt DateTime?
+  label     String?  // parceria, patrocinio, imprensa, suporte, outro
+  notes     String?
+  status    String   @default("unread") // unread, read, replied, archived
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  source    String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Partner {
+  id        String   @id @default(cuid())
+  name      String
+  logo      String?
+  website   String?
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model News {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String?
+  content     String
+  image       String?
+  category    String?
+  game        String?
+  author      String?
+  views       Int      @default(0)
+  featured    Boolean  @default(false)
+  active      Boolean  @default(true)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MediaItem {
+  id          String   @id @default(cuid())
+  type        String
+  url         String
+  thumbnail   String?
+  title       String
+  description String?
+  event       String?
+  tags        String?
+  featured    Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  date        DateTime
+  title       String
+  description String?
+  image       String?
+  category    String?
+  important   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Links editáveis dos jogos (Roblox + GTA RP)
+model GameLink {
+  id            String   @id @default(cuid())
+  game          String   @unique  // "roblox", "gtarp-kush", "gtarp-flow"
+  name          String            // Nome amigável (ex: "Galorys Tycoon", "KUSH PVP")
+  serverCode    String            // ID do jogo ou código do servidor FiveM
+  serverUrl     String?           // URL completa de acesso
+  instagram     String?           // Handle do Instagram (ex: "@joguekush")
+  videoPath     String?           // Caminho do vídeo (ex: "/videos/video-kush.mp4")
+  discordInvite String?           // Código do convite Discord (ex: "flowrp" ou "kushpvp")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Jogos/Modalidades (para seleção em Times, Conquistas, etc)
+model Game {
+  id        String   @id @default(cuid())
+  name      String   @unique  // "Counter-Strike 2", "Valorant", etc
+  slug      String   @unique  // "cs2", "valorant", etc
+  shortName String?           // "CS2", "VAL", etc
+  icon      String?           // URL do ícone/logo do jogo
+  color     String?           // Cor tema (ex: "#FF5500")
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// NOVOS MODELOS - ETAPA 1 GALORYS
+// ============================================
+
+// Jogadores em Destaque (seção da home)
+model FeaturedPlayer {
+  id        String   @id @default(cuid())
+  playerId  String   @unique
+  order     Int      // 1, 2 ou 3
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Times de Elite (seção da home)
+model EliteTeam {
+  id        String   @id @default(cuid())
+  teamId    String   @unique
+  order     Int      // 1 a 4
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Menu do site
+model MenuItem {
+  id        String     @id @default(cuid())
+  label     String
+  href      String
+  order     Int        @default(0)
+  active    Boolean    @default(true)
+  parentId  String?
+  parent    MenuItem?  @relation("MenuChildren", fields: [parentId], references: [id])
+  children  MenuItem[] @relation("MenuChildren")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+// Rodapé - Colunas
+model FooterColumn {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  order     Int          @default(0)
+  active    Boolean      @default(true)
+  items     FooterItem[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+// Rodapé - Itens
+model FooterItem {
+  id        String       @id @default(cuid())
+  label     String
+  href      String
+  order     Int          @default(0)
+  active    Boolean      @default(true)
+  columnId  String
+  column    FooterColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+// Redes Sociais
+model SocialLink {
+  id        String   @id @default(cuid())
+  platform  String   @unique // instagram, twitter, youtube, discord, twitch, tiktok
+  url       String
+  icon      String?
+  active    Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Seções da Home (ordenação)
+model HomeSection {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Configurações Gerais do Site
+model SiteConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Configurações de Backup
+model BackupConfig {
+  id              String   @id @default(cuid())
+  // Hospedagem
+  hostingType     String   @default("vercel") // vercel, vps, dedicated
+  hostingDetails  String?  // JSON com detalhes específicos
+  // Storage
+  storageType     String   @default("local") // local, google_drive, dropbox, s3
+  storageConfig   String?  // JSON com credenciais (criptografado)
+  // Frequência
+  autoBackup      Boolean  @default(false)
+  frequency       String   @default("daily") // daily, weekly, monthly
+  backupTime      String   @default("03:00") // Horário do backup
+  // Notificações
+  emailNotify     Boolean  @default(true)
+  notifyEmail     String?
+  // O que fazer backup
+  backupDatabase  Boolean  @default(true)
+  backupUploads   Boolean  @default(true)
+  // Retenção
+  keepBackups     Int      @default(7) // Quantos backups manter
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Histórico de Backups
+model BackupHistory {
+  id          String   @id @default(cuid())
+  type        String   // manual, auto
+  status      String   // success, failed, in_progress
+  size        Int?     // Tamanho em bytes
+  duration    Int?     // Duração em segundos
+  filePath    String?  // Caminho do arquivo
+  storageUrl  String?  // URL no storage externo
+  error       String?  // Mensagem de erro se falhou
+  details     String?  // JSON com detalhes
+  createdAt   DateTime @default(now())
+}
+
+// Configurações de Email
+model EmailConfig {
+  id            String   @id @default(cuid())
+  // Provedor
+  provider      String   @default("none") // none, resend, sendgrid, smtp
+  // Configurações gerais
+  fromEmail     String   @default("")
+  fromName      String   @default("Galorys")
+  // Resend
+  resendApiKey  String?
+  // SendGrid
+  sendgridApiKey String?
+  // SMTP
+  smtpHost      String?
+  smtpPort      Int?
+  smtpUser      String?
+  smtpPass      String?
+  smtpSecure    Boolean  @default(true)
+  // Status
+  isConfigured  Boolean  @default(false)
+  lastTest      DateTime?
+  lastTestOk    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Tokens de Recuperação de Senha
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Configurações do Site (SEO, contato, etc)
+model SiteSettings {
+  id             String   @id @default(cuid())
+  siteName       String   @default("Galorys eSports")
+  siteDescription String  @default("")
+  siteKeywords   String   @default("")
+  siteUrl        String   @default("")
+  ogImage        String   @default("")
+  twitterHandle  String   @default("")
+  contactEmail   String   @default("")
+  contactPhone   String   @default("")
+  address        String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

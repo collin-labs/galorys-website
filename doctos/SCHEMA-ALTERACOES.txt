@@ -1,0 +1,56 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# GALORYS - ALTERAÇÕES NO SCHEMA PRISMA
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# INSTRUÇÕES:
+# 1. Abra o arquivo: D:\Projetos\Galorys\prisma\schema.prisma
+# 2. Encontre o modelo "UserReward" (Ctrl+F)
+# 3. SUBSTITUA o modelo inteiro pelo código abaixo
+# 4. Depois execute: npx prisma db push
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ENCONTRE ESTE MODELO:
+# ─────────────────────
+# model UserReward {
+#   id         String   @id @default(cuid())
+#   userId     String
+#   rewardId   String
+#   redeemedAt DateTime @default(now())
+#   reward     Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+#   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+# 
+#   @@unique([userId, rewardId])
+# }
+
+# SUBSTITUA POR ESTE:
+# ───────────────────
+
+model UserReward {
+  id            String   @id @default(cuid())
+  userId        String
+  rewardId      String
+  status        String   @default("pendente") // pendente, processando, enviado, entregue
+  redeemedAt    DateTime @default(now())
+  processedAt   DateTime?
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+  // Dados de entrega (para produtos físicos)
+  addressStreet String?
+  addressCity   String?
+  addressState  String?
+  addressZip    String?
+  trackingCode  String?
+  notes         String?
+  reward        Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# APÓS SALVAR, EXECUTE NO TERMINAL:
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# cd D:\Projetos\Galorys
+# npx prisma db push
+#
+# ═══════════════════════════════════════════════════════════════════════════════
