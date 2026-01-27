@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -9,7 +9,7 @@ import { Lock, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle, XCircle } from "
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-export default function NovaSenhaPage() {
+function NovaSenhaContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -264,5 +264,17 @@ export default function NovaSenhaPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function NovaSenhaPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <NovaSenhaContent />
+    </Suspense>
   )
 }
