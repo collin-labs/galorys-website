@@ -251,35 +251,59 @@ export function Header() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
               className="lg:hidden fixed inset-0 z-[100]"
-              style={{ top: isHome ? "40px" : "0" }}
+              style={{ 
+                top: isHome ? "40px" : "0",
+                // Fix Safari iOS height
+                height: isHome ? "calc(100vh - 40px)" : "100vh",
+                WebkitOverflowScrolling: "touch",
+              }}
             >
-              {/* Backdrop com blur */}
+              {/* Backdrop - Safari fix: usar bg sólido com opacity ao invés de backdrop-blur pesado */}
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-background/80 backdrop-blur-xl"
+                className="absolute inset-0 bg-background/95"
+                style={{
+                  // Safari iOS fix
+                  WebkitBackdropFilter: "blur(20px)",
+                  backdropFilter: "blur(20px)",
+                  transform: "translateZ(0)", // Force GPU acceleration
+                }}
                 onClick={() => setIsMobileMenuOpen(false)}
               />
               
-              {/* Gradiente decorativo */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-galorys-purple/20 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-galorys-pink/20 rounded-full blur-3xl" />
+              {/* Gradiente decorativo - simplificado para Safari */}
+              <div 
+                className="absolute inset-0 overflow-hidden pointer-events-none"
+                style={{ transform: "translateZ(0)" }}
+              >
+                <div 
+                  className="absolute -top-40 -right-40 w-80 h-80 bg-galorys-purple/20 rounded-full"
+                  style={{ filter: "blur(60px)" }}
+                />
+                <div 
+                  className="absolute -bottom-40 -left-40 w-80 h-80 bg-galorys-pink/20 rounded-full"
+                  style={{ filter: "blur(60px)" }}
+                />
               </div>
 
-              {/* Container do menu */}
+              {/* Container do menu - Safari iOS scroll fix */}
               <motion.div 
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -20, opacity: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
+                transition={{ duration: 0.2 }}
                 className="relative h-full flex flex-col"
+                style={{ 
+                  transform: "translateZ(0)",
+                  willChange: "transform",
+                }}
               >
                 {/* Header do menu mobile */}
-                <div className="flex items-center justify-between px-4 h-16 border-b border-border/50">
+                <div className="flex items-center justify-between px-4 h-16 border-b border-border/50 flex-shrink-0">
                   <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-transparent border-2 border-galorys-purple p-1 flex items-center justify-center">
                       <Image
@@ -300,44 +324,38 @@ export function Header() {
                   </Link>
                   <button 
                     onClick={() => setIsMobileMenuOpen(false)} 
-                    className="w-10 h-10 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+                    className="w-10 h-10 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+                    style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Links do menu */}
-                <nav className="flex-1 overflow-y-auto px-4 py-6">
-                  <motion.div 
-                    initial="hidden"
-                    animate="visible"
-                    exit="hidden"
-                    variants={{
-                      hidden: { opacity: 0 },
-                      visible: {
-                        opacity: 1,
-                        transition: { staggerChildren: 0.05, delayChildren: 0.1 }
-                      }
-                    }}
-                    className="space-y-2"
-                  >
+                {/* Links do menu - Safari iOS scroll fix */}
+                <nav 
+                  className="flex-1 overflow-y-auto px-4 py-6"
+                  style={{ 
+                    WebkitOverflowScrolling: "touch",
+                    overscrollBehavior: "contain",
+                  }}
+                >
+                  <div className="space-y-2">
                     {navLinks.map((link, index) => (
                       <motion.div
                         key={link.name}
-                        variants={{
-                          hidden: { opacity: 0, x: -20 },
-                          visible: { opacity: 1, x: 0 }
-                        }}
-                        transition={{ duration: 0.3 }}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: index * 0.03 }}
                       >
                         <Link
                           href={link.href}
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className={`group flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 ${
+                          className={`group flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-200 ${
                             isActive(link.href)
                               ? "bg-gradient-to-r from-galorys-purple/20 to-galorys-pink/20 border border-galorys-purple/30"
                               : "hover:bg-muted/50 border border-transparent hover:border-border/50"
                           }`}
+                          style={{ WebkitTapHighlightColor: "transparent" }}
                         >
                           {/* Número do item */}
                           <span className={`text-xs font-mono ${
@@ -357,10 +375,7 @@ export function Header() {
                           
                           {/* Indicador ativo */}
                           {isActive(link.href) && (
-                            <motion.div 
-                              layoutId="activeIndicator"
-                              className="w-2 h-2 rounded-full bg-gradient-to-r from-galorys-purple to-galorys-pink"
-                            />
+                            <div className="w-2 h-2 rounded-full bg-gradient-to-r from-galorys-purple to-galorys-pink" />
                           )}
                           
                           {/* Seta */}
@@ -372,16 +387,11 @@ export function Header() {
                         </Link>
                       </motion.div>
                     ))}
-                  </motion.div>
+                  </div>
                 </nav>
 
                 {/* Footer do menu mobile */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="px-4 py-6 border-t border-border/50"
-                >
+                <div className="px-4 py-6 border-t border-border/50 flex-shrink-0">
                   {/* Redes sociais dinâmicas do banco */}
                   <div className="flex items-center justify-center gap-3 mb-4">
                     {socialLinks.length > 0 ? (
@@ -394,7 +404,8 @@ export function Header() {
                             target="_blank"
                             rel="noopener noreferrer"
                             title={social.platform.charAt(0).toUpperCase() + social.platform.slice(1)}
-                            className="w-10 h-10 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-galorys-purple/50 hover:bg-galorys-purple/10 transition-all"
+                            className="w-10 h-10 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-galorys-purple/50 hover:bg-galorys-purple/10 transition-all"
+                            style={{ WebkitTapHighlightColor: "transparent" }}
                           >
                             <Icon className="w-4 h-4" />
                           </a>
@@ -414,7 +425,7 @@ export function Header() {
                   <p className="text-center text-xs text-muted-foreground">
                     © {new Date().getFullYear()} Galorys eSports
                   </p>
-                </motion.div>
+                </div>
               </motion.div>
             </motion.div>
           )}

@@ -351,6 +351,7 @@
 /* Glass effect - theme aware */
 .glass {
   background: var(--bg-surface);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid var(--border);
 }
@@ -442,4 +443,38 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--galorys-purple-dark);
+}
+
+/* Safari iOS fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Fix para altura 100vh no Safari iOS */
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+  
+  /* Fix para backdrop-filter no Safari */
+  .backdrop-blur-xl,
+  .backdrop-blur-lg,
+  .backdrop-blur-md,
+  .backdrop-blur-sm,
+  .backdrop-blur {
+    -webkit-backdrop-filter: blur(20px);
+  }
+  
+  /* Melhorar performance de animações */
+  .fixed {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  /* Fix para scroll suave */
+  .overflow-y-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Desabilitar highlight de tap em mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
 }
