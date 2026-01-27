@@ -1,0 +1,9 @@
+stages:
+  - deploy
+
+deploy_dev:
+  stage: deploy
+  only:
+    - main
+  script:
+    - bash /home/gitlab-runner/deploy_site.sh
