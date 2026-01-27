@@ -77,70 +77,113 @@ async function fetchFivemDirect() {
   return totalPlayers
 }
 
-// Buscar diretamente da API do Roblox (sem fetch interno)
+// Buscar jogadores de TODOS os jogos Roblox
 async function fetchRobloxDirect() {
+  let totalPlayers = 0
+  
   try {
-    // Tentar buscar ID do jogo do banco de dados
-    let gameId = DEFAULT_ROBLOX_UNIVERSE_ID
+    // 1. Buscar jogos da tabela RobloxGame (múltiplos jogos)
+    let robloxGames: { universeId: string; name: string }[] = []
     
     try {
-      const dbLink = await prisma.gameLink.findUnique({
-        where: { game: "roblox" },
-        select: { serverCode: true },
+      const dbGames = await prisma.robloxGame.findMany({
+        where: { featured: true },
+        select: { universeId: true, name: true },
       })
       
-      if (dbLink?.serverCode) {
-        gameId = dbLink.serverCode
+      if (dbGames.length > 0) {
+        robloxGames = dbGames
+        console.log(`LiveCount: Encontrados ${dbGames.length} jogos Roblox no banco`)
       }
     } catch (dbError) {
-      // Usar fallback se banco falhar
-      console.log("LiveCount: usando ID Roblox padrão (banco não disponível)")
+      console.log("LiveCount: tabela RobloxGame não disponível")
     }
     
-    // Converter Place ID para Universe ID
-    const universeResponse = await fetch(
-      `https://apis.roblox.com/universes/v1/places/${gameId}/universe`,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Galorys-Website/1.0'
-        },
-        next: { revalidate: 60 }
+    // 2. Se não encontrou na tabela RobloxGame, buscar da GameLink
+    if (robloxGames.length === 0) {
+      try {
+        // Buscar TODOS os jogos que começam com "roblox" na GameLink
+        const dbLinks = await prisma.gameLink.findMany({
+          where: {
+            game: { startsWith: "roblox" },
+            active: true,
+          },
+          select: { serverCode: true, name: true, game: true },
+        })
+        
+        if (dbLinks.length > 0) {
+          // serverCode pode ser Place ID, precisamos converter para Universe ID
+          for (const link of dbLinks) {
+            if (link.serverCode) {
+              robloxGames.push({ 
+                universeId: link.serverCode, // Será convertido abaixo
+                name: link.name 
+              })
+            }
+          }
+          console.log(`LiveCount: Encontrados ${dbLinks.length} jogos Roblox na GameLink`)
+        }
+      } catch (dbError) {
+        console.log("LiveCount: usando ID Roblox padrão (banco não disponível)")
       }
-    )
-    
-    if (!universeResponse.ok) {
-      return 0
     }
     
-    const universeData = await universeResponse.json()
-    const universeId = universeData.universeId
-    
-    if (!universeId) {
-      return 0
+    // 3. Fallback para ID padrão se não encontrou nada
+    if (robloxGames.length === 0) {
+      robloxGames = [{ universeId: DEFAULT_ROBLOX_UNIVERSE_ID, name: "Padrão" }]
     }
     
-    // Buscar dados do jogo usando Universe ID
-    const response = await fetch(
-      `https://games.roblox.com/v1/games?universeIds=${universeId}`,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Galorys-Website/1.0'
-        },
-        next: { revalidate: 60 }
+    // 4. Buscar jogadores de CADA jogo
+    for (const game of robloxGames) {
+      try {
+        let universeId = game.universeId
+        
+        // Se parece ser um Place ID (número grande), converter para Universe ID
+        if (universeId.length > 10) {
+          const universeResponse = await fetch(
+            `https://apis.roblox.com/universes/v1/places/${universeId}/universe`,
+            {
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Galorys-Website/1.0'
+              },
+              next: { revalidate: 60 }
+            }
+          )
+          
+          if (universeResponse.ok) {
+            const universeData = await universeResponse.json()
+            universeId = universeData.universeId?.toString() || universeId
+          }
+        }
+        
+        // Buscar dados do jogo usando Universe ID
+        const response = await fetch(
+          `https://games.roblox.com/v1/games?universeIds=${universeId}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Galorys-Website/1.0'
+            },
+            next: { revalidate: 60 }
+          }
+        )
+        
+        if (response.ok) {
+          const data = await response.json()
+          const playing = data.data?.[0]?.playing || 0
+          totalPlayers += playing
+          console.log(`LiveCount: ${game.name} = ${playing} jogadores`)
+        }
+      } catch (e) {
+        console.log(`LiveCount: Erro ao buscar ${game.name}`)
       }
-    )
-    
-    if (response.ok) {
-      const data = await response.json()
-      return data.data?.[0]?.playing || 0
     }
   } catch (e) {
-    // Silenciar erros
+    console.error("LiveCount: Erro geral no Roblox:", e)
   }
   
-  return 0
+  return totalPlayers
 }
 
 export async function GET() {
