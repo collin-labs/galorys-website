@@ -7,19 +7,65 @@ import { MatchesSection } from "@/components/sections/matches-section"
 import { PartnersSection } from "@/components/sections/partners-section"
 import { CtaSection } from "@/components/sections/cta-section"
 import { LiveCounter } from "@/components/sections/live-counter"
+import { prisma } from "@/lib/prisma"
 
-export function HomeV2() {
+// Mapear slug para componente (V2 usa componentes diferentes para hero e teams)
+const sectionComponents: Record<string, React.ComponentType> = {
+  hero: HeroSectionV2,
+  teams: TeamsSectionV2,
+  achievements: AchievementsSection,
+  players: PlayersSection,
+  roblox: GamesSection,
+  matches: MatchesSection,
+  partners: PartnersSection,
+  cta: CtaSection,
+}
+
+export async function HomeV2() {
+  // Buscar seções ativas do banco, ordenadas
+  let sections: { slug: string; active: boolean; order: number }[] = []
+  
+  try {
+    sections = await prisma.homeSection.findMany({
+      where: { active: true },
+      orderBy: { order: 'asc' },
+      select: { slug: true, active: true, order: true }
+    })
+  } catch (error) {
+    console.error('Erro ao buscar seções:', error)
+    sections = [
+      { slug: 'hero', active: true, order: 1 },
+      { slug: 'teams', active: true, order: 2 },
+      { slug: 'achievements', active: true, order: 3 },
+      { slug: 'players', active: true, order: 4 },
+      { slug: 'roblox', active: true, order: 5 },
+      { slug: 'matches', active: true, order: 6 },
+      { slug: 'partners', active: true, order: 7 },
+      { slug: 'cta', active: true, order: 8 },
+    ]
+  }
+
+  if (sections.length === 0) {
+    sections = [
+      { slug: 'hero', active: true, order: 1 },
+      { slug: 'teams', active: true, order: 2 },
+      { slug: 'achievements', active: true, order: 3 },
+      { slug: 'players', active: true, order: 4 },
+      { slug: 'roblox', active: true, order: 5 },
+      { slug: 'matches', active: true, order: 6 },
+      { slug: 'partners', active: true, order: 7 },
+      { slug: 'cta', active: true, order: 8 },
+    ]
+  }
+
   return (
     <>
       <LiveCounter />
-      <HeroSectionV2 />
-      <TeamsSectionV2 />
-      <AchievementsSection />
-      <PlayersSection />
-      <GamesSection />
-      <MatchesSection />
-      <PartnersSection />
-      <CtaSection />
+      {sections.map((section) => {
+        const Component = sectionComponents[section.slug]
+        if (!Component) return null
+        return <Component key={section.slug} />
+      })}
     </>
   )
 }
