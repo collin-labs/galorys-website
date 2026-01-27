@@ -89,8 +89,8 @@ export function LiveCounter() {
     // Buscar imediatamente
     fetchLiveCount()
 
-    // Atualizar a cada 60 segundos
-    const interval = setInterval(fetchLiveCount, 60000)
+    // Atualizar a cada 30 segundos
+    const interval = setInterval(fetchLiveCount, 30000)
     return () => clearInterval(interval)
   }, [])
 
