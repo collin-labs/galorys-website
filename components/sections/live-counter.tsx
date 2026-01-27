@@ -6,8 +6,13 @@ import { Users, Wifi, WifiOff } from "lucide-react"
 
 interface LiveCountData {
   totalPlayers: number
+  breakdown: {
+    roblox: number
+    fivem: number
+  }
   isLive: boolean
   fetchedAt: string
+  cacheAge?: number
 }
 
 // Componente de número animado
@@ -73,7 +78,7 @@ export function LiveCounter() {
   useEffect(() => {
     async function fetchLiveCount() {
       try {
-        const response = await fetch("/api/live-count")
+        const response = await fetch("/api/games-stats")
         if (!response.ok) throw new Error("Falha ao carregar")
         const result = await response.json()
         setData(result)

@@ -81,10 +81,28 @@ export function RobloxSection() {
     async function fetchRobloxData() {
       try {
         setLoading(true)
-        const response = await fetch("/api/roblox")
+        const response = await fetch("/api/games-stats")
         if (!response.ok) throw new Error("Falha ao carregar")
         const data = await response.json()
-        setRobloxData(data)
+        // Adaptar para o formato esperado pelo componente
+        setRobloxData({
+          group: data.roblox?.group ? {
+            id: parseInt(data.roblox.group.id) || 0,
+            name: data.roblox.group.name || "Galorys",
+            description: "",
+            memberCount: data.roblox.group.memberCount || 0,
+            icon: data.roblox.group.icon,
+            url: `https://www.roblox.com/groups/${data.roblox.group.id}`
+          } : {
+            id: 0,
+            name: "Galorys",
+            description: "",
+            memberCount: 0,
+            icon: null,
+            url: ""
+          },
+          games: data.roblox?.games || []
+        })
       } catch (err) {
         setError("Não foi possível carregar os dados")
         console.error(err)
@@ -94,6 +112,10 @@ export function RobloxSection() {
     }
 
     fetchRobloxData()
+    
+    // Atualizar a cada 30 segundos (mesmo intervalo do contador do topo)
+    const interval = setInterval(fetchRobloxData, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const togglePlay = () => {

@@ -5,22 +5,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import { 
   Gamepad2, Users, Eye, Play, Pause, Volume2, VolumeX, 
   ExternalLink, Loader2, ChevronLeft, ChevronRight,
-  Instagram, Globe, Heart, Zap
+  Instagram, Globe
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 // Tipos
-interface RobloxGame {
-  id: string
-  name: string
-  playing: number
-  visits: number
-  favoritedCount?: number
-  icon: string | null
-  thumbnail: string | null
-  url: string
-}
-
 interface RobloxData {
   group: {
     id: number
@@ -30,13 +19,15 @@ interface RobloxData {
     icon: string | null
     url: string
   }
-  games: RobloxGame[]
-  totals?: {
+  games: Array<{
+    id: string
+    name: string
     playing: number
     visits: number
-    favorites: number
-    gamesCount: number
-  }
+    icon: string | null
+    thumbnail: string | null
+    url: string
+  }>
 }
 
 interface FivemData {
@@ -71,26 +62,23 @@ function formatNumber(num: number): string {
 function FloatingBlocks({ color }: { color: string }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(12)].map((_, i) => (
+      {[...Array(8)].map((_, i) => (
         <motion.div
           key={i}
-          className={`absolute rounded-lg ${color}`}
+          className={`absolute w-8 h-8 rounded-lg ${color}`}
           style={{
-            width: `${15 + Math.random() * 25}px`,
-            height: `${15 + Math.random() * 25}px`,
-            left: `${5 + Math.random() * 90}%`,
-            top: `${5 + Math.random() * 90}%`,
+            left: `${10 + Math.random() * 80}%`,
+            top: `${10 + Math.random() * 80}%`,
           }}
           animate={{
-            y: [0, -30, 0],
-            rotate: [0, 180, 360],
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.6, 0.3],
+            y: [0, -20, 0],
+            rotate: [0, 90, 180, 270, 360],
+            scale: [1, 1.1, 1],
           }}
           transition={{
-            duration: 5 + Math.random() * 3,
+            duration: 4 + Math.random() * 2,
             repeat: Number.POSITIVE_INFINITY,
-            delay: Math.random() * 3,
+            delay: Math.random() * 2,
             ease: "easeInOut",
           }}
         />
@@ -108,61 +96,51 @@ function GameTabs({
   onTabChange: (tab: GameTab) => void 
 }) {
   return (
-    <div className="flex items-center justify-center gap-3 mb-10">
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+    <div className="flex items-center justify-center gap-2 mb-8">
+      <button
         onClick={() => onTabChange("roblox")}
-        className={`relative px-8 py-4 rounded-2xl font-bold text-sm md:text-base transition-all duration-300 overflow-hidden ${
+        className={`relative px-6 py-3 rounded-xl font-bold text-sm md:text-base transition-all duration-300 ${
           activeTab === "roblox"
-            ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-[0_0_40px_rgba(255,77,77,0.5)]"
-            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent hover:border-red-500/30"
+            ? "bg-roblox-red text-white shadow-[0_0_30px_rgba(255,77,77,0.4)]"
+            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
         }`}
       >
-        <span className="relative z-10 flex items-center gap-2">
-          <Gamepad2 className="w-5 h-5" />
+        <span className="flex items-center gap-2">
+          <Gamepad2 className="w-4 h-4 md:w-5 md:h-5" />
           ROBLOX
         </span>
         {activeTab === "roblox" && (
           <motion.div
-            layoutId="activeTabBg"
-            className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600"
-            initial={false}
-            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+            layoutId="activeTab"
+            className="absolute inset-0 rounded-xl bg-roblox-red -z-10"
           />
         )}
-      </motion.button>
+      </button>
       
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+      <button
         onClick={() => onTabChange("gtarp")}
-        className={`relative px-8 py-4 rounded-2xl font-bold text-sm md:text-base transition-all duration-300 overflow-hidden ${
+        className={`relative px-6 py-3 rounded-xl font-bold text-sm md:text-base transition-all duration-300 ${
           activeTab === "gtarp"
-            ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-[0_0_40px_rgba(249,115,22,0.5)]"
-            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent hover:border-orange-500/30"
+            ? "bg-orange-500 text-white shadow-[0_0_30px_rgba(249,115,22,0.4)]"
+            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
         }`}
       >
-        <span className="relative z-10 flex items-center gap-2">
-          <Globe className="w-5 h-5" />
+        <span className="flex items-center gap-2">
+          <Globe className="w-4 h-4 md:w-5 md:h-5" />
           GTA RP
         </span>
         {activeTab === "gtarp" && (
           <motion.div
-            layoutId="activeTabBg"
-            className="absolute inset-0 bg-gradient-to-r from-orange-500 to-orange-600"
-            initial={false}
-            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+            layoutId="activeTab"
+            className="absolute inset-0 rounded-xl bg-orange-500 -z-10"
           />
         )}
-      </motion.button>
+      </button>
     </div>
   )
 }
 
-// ========================================
-// CONTEÚDO DO ROBLOX - 2 JOGOS
-// ========================================
+// Conteúdo do Roblox
 function RobloxContent({ 
   robloxData, 
   loading 
@@ -192,37 +170,29 @@ function RobloxContent({
     }
   }
 
-  const games = robloxData?.games || []
+  const game = robloxData?.games[0]
   const group = robloxData?.group
-  const totals = robloxData?.totals
 
-  // Stats com totais
   const stats = [
     { icon: Users, value: group?.memberCount || 0, label: "Membros" },
-    { icon: Gamepad2, value: totals?.playing || games.reduce((sum, g) => sum + g.playing, 0), label: "Jogando Agora", live: true },
-    { icon: Eye, value: totals?.visits || games.reduce((sum, g) => sum + g.visits, 0), label: "Visitas" },
+    { icon: Gamepad2, value: game?.playing || 0, label: "Jogando Agora", live: true },
+    { icon: Eye, value: game?.visits || 0, label: "Visitas" },
   ]
 
   return (
-    <div className="glass rounded-3xl overflow-hidden bg-galorys-surface/80 border border-red-500/20 backdrop-blur-xl">
+    <div className="glass rounded-3xl overflow-hidden bg-galorys-surface/80 border border-roblox-red/20 backdrop-blur-lg">
       {/* Stats */}
       <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
         {stats.map((stat, index) => (
-          <motion.div 
-            key={stat.label} 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="p-4 md:p-6 text-center"
-          >
-            <stat.icon className="w-5 h-5 md:w-6 md:h-6 text-red-500 mx-auto mb-2" />
+          <div key={stat.label} className="p-4 md:p-6 text-center">
+            <stat.icon className="w-5 h-5 md:w-6 md:h-6 text-roblox-red mx-auto mb-2" />
             <div className="flex items-center justify-center gap-2">
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               ) : (
                 <>
                   {stat.live && stat.value > 0 && (
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   )}
                   <p className="text-xl md:text-2xl font-bold text-foreground">
                     {formatNumber(stat.value)}
@@ -231,13 +201,13 @@ function RobloxContent({
               )}
             </div>
             <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
-          </motion.div>
+          </div>
         ))}
       </div>
 
       {/* Video */}
       <div className="p-4 md:p-6">
-        <div className="relative aspect-video rounded-2xl overflow-hidden bg-galorys-base mb-6 group">
+        <div className="relative aspect-video rounded-2xl overflow-hidden bg-galorys-base mb-4 group">
           <video
             ref={videoRef}
             src="/videos/galorys-video.mp4"
@@ -256,7 +226,7 @@ function RobloxContent({
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={togglePlay}
-              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500/90 flex items-center justify-center cursor-pointer hover:bg-red-500 transition-colors shadow-lg"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-roblox-red/90 flex items-center justify-center cursor-pointer hover:bg-roblox-red transition-colors shadow-lg"
             >
               {isPlaying ? (
                 <Pause className="w-4 h-4 md:w-5 md:h-5 text-white" />
@@ -280,106 +250,40 @@ function RobloxContent({
           </div>
         </div>
 
-        {/* Games Grid - 2 Jogos */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          {games.slice(0, 2).map((game, index) => (
-            <motion.div 
-              key={game.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + index * 0.1 }}
-              whileHover={{ scale: 1.02, y: -2 }}
-              className="p-4 rounded-xl bg-galorys-base/50 border border-red-500/20 hover:border-red-500/40 transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,77,77,0.15)]"
-            >
-              <div className="flex items-center gap-4">
-                {game.icon ? (
-                  <img 
-                    src={game.icon} 
-                    alt={game.name}
-                    className="w-14 h-14 md:w-16 md:h-16 rounded-xl border border-red-500/20"
-                  />
-                ) : (
-                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/10 flex items-center justify-center">
-                    <Gamepad2 className="w-7 h-7 text-red-500/50" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-foreground text-sm md:text-base truncate">{game.name}</h3>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs md:text-sm text-muted-foreground mt-1">
-                    <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      {formatNumber(game.playing)} jogando
-                    </span>
-                    <span className="hidden sm:flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      {formatNumber(game.visits)}
-                    </span>
-                  </div>
+        {/* Game Info */}
+        {game && (
+          <div className="mb-4 p-3 md:p-4 rounded-xl bg-galorys-base/50 border border-border">
+            <div className="flex items-center gap-3 md:gap-4">
+              {game.icon && (
+                <img 
+                  src={game.icon} 
+                  alt={game.name}
+                  className="w-12 h-12 md:w-16 md:h-16 rounded-xl"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-foreground text-sm md:text-base truncate">{game.name}</h3>
+                <div className="flex items-center gap-3 text-xs md:text-sm text-muted-foreground mt-1">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    {formatNumber(game.playing)} jogando
+                  </span>
                 </div>
               </div>
-              
-              {/* Actions */}
-              <div className="flex gap-2 mt-4">
-                <a 
-                  href={game.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex-1"
-                >
-                  <Button 
-                    size="sm" 
-                    className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs shadow-[0_0_15px_rgba(255,77,77,0.3)]"
-                  >
-                    <Play className="w-3 h-3 mr-1" />
-                    Jogar
-                  </Button>
-                </a>
-                <a 
-                  href={game.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                  </Button>
-                </a>
-              </div>
-            </motion.div>
-          ))}
-          
-          {/* Placeholder se não tiver jogos */}
-          {games.length === 0 && !loading && (
-            <>
-              <div className="p-4 rounded-xl bg-galorys-base/30 border border-dashed border-red-500/20 flex items-center justify-center">
-                <p className="text-muted-foreground text-sm">Jogo 1 não configurado</p>
-              </div>
-              <div className="p-4 rounded-xl bg-galorys-base/30 border border-dashed border-red-500/20 flex items-center justify-center">
-                <p className="text-muted-foreground text-sm">Jogo 2 não configurado</p>
-              </div>
-            </>
-          )}
-          
-          {/* Placeholder para segundo jogo se só tiver 1 */}
-          {games.length === 1 && (
-            <div className="p-4 rounded-xl bg-galorys-base/30 border border-dashed border-red-500/20 flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">Jogo 2 não configurado</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <a href="/roblox">
+          <a href={game?.url || "#"} target="_blank" rel="noopener noreferrer">
             <Button
               size="lg"
-              className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-8 rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-[0_10px_40px_rgba(255,77,77,0.4)]"
+              disabled={!game?.url}
+              className="w-full sm:w-auto bg-roblox-red hover:bg-roblox-red/90 text-white px-6 md:px-8 rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-[0_10px_40px_rgba(255,77,77,0.4)] disabled:opacity-50"
             >
-              <Zap className="w-5 h-5 mr-2" />
-              Ver Página Completa
+              <Gamepad2 className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+              Jogar Agora
             </Button>
           </a>
           <a href={group?.url || "#"} target="_blank" rel="noopener noreferrer">
@@ -387,9 +291,9 @@ function RobloxContent({
               size="lg"
               variant="outline"
               disabled={!group?.url}
-              className="w-full sm:w-auto border-red-500/50 text-red-400 hover:bg-red-500/10 px-8 rounded-xl disabled:opacity-50"
+              className="w-full sm:w-auto border-roblox-red/50 text-roblox-red hover:bg-roblox-red/10 px-6 md:px-8 rounded-xl disabled:opacity-50"
             >
-              <Users className="w-5 h-5 mr-2" />
+              <Users className="w-4 h-4 md:w-5 md:h-5 mr-2" />
               Comunidade
             </Button>
           </a>
@@ -399,9 +303,7 @@ function RobloxContent({
   )
 }
 
-// ========================================
-// CONTEÚDO DO GTA RP - 2 SERVIDORES
-// ========================================
+// Conteúdo do GTA RP
 function GtaRpContent({ 
   fivemData, 
   loading 
@@ -449,17 +351,11 @@ function GtaRpContent({
   ]
 
   return (
-    <div className="glass rounded-3xl overflow-hidden bg-galorys-surface/80 border border-orange-500/20 backdrop-blur-xl">
+    <div className="glass rounded-3xl overflow-hidden bg-galorys-surface/80 border border-orange-500/20 backdrop-blur-lg">
       {/* Stats */}
       <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
         {stats.map((stat, index) => (
-          <motion.div 
-            key={stat.label} 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="p-4 md:p-6 text-center"
-          >
+          <div key={stat.label} className="p-4 md:p-6 text-center">
             <stat.icon className="w-5 h-5 md:w-6 md:h-6 text-orange-500 mx-auto mb-2" />
             <div className="flex items-center justify-center gap-2">
               {loading ? (
@@ -467,7 +363,7 @@ function GtaRpContent({
               ) : (
                 <>
                   {stat.live && stat.value > 0 && (
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   )}
                   <p className="text-xl md:text-2xl font-bold text-foreground">
                     {formatNumber(stat.value)}
@@ -476,13 +372,13 @@ function GtaRpContent({
               )}
             </div>
             <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
-          </motion.div>
+          </div>
         ))}
       </div>
 
       {/* Video */}
       <div className="p-4 md:p-6">
-        <div className="relative aspect-video rounded-2xl overflow-hidden bg-galorys-base mb-6 group">
+        <div className="relative aspect-video rounded-2xl overflow-hidden bg-galorys-base mb-4 group">
           <video
             ref={videoRef}
             src="/videos/video-flow.mp4"
@@ -525,17 +421,11 @@ function GtaRpContent({
           </div>
         </div>
 
-        {/* Servers Info - 2 Servidores */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {/* Servers Info */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           {/* KUSH Server */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            whileHover={{ scale: 1.02, y: -2 }}
-            className="p-4 rounded-xl bg-galorys-base/50 border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300 hover:shadow-[0_0_30px_rgba(249,115,22,0.15)]"
-          >
-            <div className="flex items-center justify-between mb-3">
+          <div className="p-3 md:p-4 rounded-xl bg-galorys-base/50 border border-border">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold text-foreground text-sm md:text-base">{kushServer?.name || "KUSH PVP"}</h3>
               {kushServer?.online && (
                 <span className="flex items-center gap-1 text-xs text-green-500">
@@ -544,7 +434,7 @@ function GtaRpContent({
                 </span>
               )}
             </div>
-            <p className="text-xs md:text-sm text-muted-foreground mb-3">
+            <p className="text-xs md:text-sm text-muted-foreground mb-2">
               {formatNumber(kushServer?.players || 0)} / {kushServer?.maxPlayers || 128} jogadores
             </p>
             <div className="flex gap-2">
@@ -554,7 +444,7 @@ function GtaRpContent({
                 rel="noopener noreferrer"
                 className="flex-1"
               >
-                <Button size="sm" className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                <Button size="sm" className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs">
                   <Play className="w-3 h-3 mr-1" />
                   Conectar
                 </Button>
@@ -569,17 +459,11 @@ function GtaRpContent({
                 </Button>
               </a>
             </div>
-          </motion.div>
+          </div>
 
           {/* Flow Server */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            whileHover={{ scale: 1.02, y: -2 }}
-            className="p-4 rounded-xl bg-galorys-base/50 border border-green-500/20 hover:border-green-500/40 transition-all duration-300 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)]"
-          >
-            <div className="flex items-center justify-between mb-3">
+          <div className="p-3 md:p-4 rounded-xl bg-galorys-base/50 border border-border">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold text-foreground text-sm md:text-base">{flowServer?.name || "Flow RP"}</h3>
               {flowServer?.online && (
                 <span className="flex items-center gap-1 text-xs text-green-500">
@@ -588,7 +472,7 @@ function GtaRpContent({
                 </span>
               )}
             </div>
-            <p className="text-xs md:text-sm text-muted-foreground mb-3">
+            <p className="text-xs md:text-sm text-muted-foreground mb-2">
               {formatNumber(flowServer?.players || 0)} / {flowServer?.maxPlayers || 256} jogadores
             </p>
             <div className="flex gap-2">
@@ -598,7 +482,7 @@ function GtaRpContent({
                 rel="noopener noreferrer"
                 className="flex-1"
               >
-                <Button size="sm" className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                <Button size="sm" className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs">
                   <Play className="w-3 h-3 mr-1" />
                   Conectar
                 </Button>
@@ -613,7 +497,7 @@ function GtaRpContent({
                 </Button>
               </a>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* CTA Principal */}
@@ -623,7 +507,7 @@ function GtaRpContent({
               size="lg"
               className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-[0_10px_40px_rgba(249,115,22,0.4)]"
             >
-              <ExternalLink className="w-5 h-5 mr-2" />
+              <ExternalLink className="w-4 h-4 md:w-5 md:h-5 mr-2" />
               Ver Página Completa
             </Button>
           </a>
@@ -633,9 +517,7 @@ function GtaRpContent({
   )
 }
 
-// ========================================
-// COMPONENTE PRINCIPAL
-// ========================================
+// Componente Principal
 export function GamesSection() {
   const [activeTab, setActiveTab] = useState<GameTab>("roblox")
   const [robloxData, setRobloxData] = useState<RobloxData | null>(null)
@@ -643,40 +525,59 @@ export function GamesSection() {
   const [loadingRoblox, setLoadingRoblox] = useState(true)
   const [loadingFivem, setLoadingFivem] = useState(true)
 
-  // Buscar dados do Roblox
+  // Buscar dados de todos os jogos da API unificada
   useEffect(() => {
-    async function fetchRobloxData() {
+    async function fetchGamesData() {
       try {
         setLoadingRoblox(true)
-        const response = await fetch("/api/roblox")
+        setLoadingFivem(true)
+        const response = await fetch("/api/games-stats")
         if (!response.ok) throw new Error("Falha ao carregar")
         const data = await response.json()
-        setRobloxData(data)
+        
+        // Adaptar dados do Roblox
+        setRobloxData({
+          group: data.roblox?.group ? {
+            id: parseInt(data.roblox.group.id) || 0,
+            name: data.roblox.group.name || "Galorys",
+            description: "",
+            memberCount: data.roblox.group.memberCount || 0,
+            icon: data.roblox.group.icon,
+            url: `https://www.roblox.com/groups/${data.roblox.group.id}`
+          } : null,
+          games: data.roblox?.games || []
+        })
+        
+        // Adaptar dados do FiveM
+        setFivemData({
+          servers: (data.fivem?.servers || []).map((s: any) => ({
+            code: s.code,
+            game: s.game,
+            name: s.name,
+            players: s.players,
+            maxPlayers: s.maxPlayers || 0,
+            online: s.online || s.players > 0,
+            hostname: s.hostname || s.name,
+            connectUrl: s.url || `https://cfx.re/join/${s.code}`,
+            instagram: s.instagram || null,
+            videoPath: s.video || null,
+            discordInvite: s.discord || null
+          })),
+          totalPlayers: data.fivem?.totalPlayers || 0
+        })
       } catch (err) {
-        console.error("Erro Roblox:", err)
+        console.error("Erro ao buscar jogos:", err)
       } finally {
         setLoadingRoblox(false)
-      }
-    }
-    fetchRobloxData()
-  }, [])
-
-  // Buscar dados do FiveM
-  useEffect(() => {
-    async function fetchFivemData() {
-      try {
-        setLoadingFivem(true)
-        const response = await fetch("/api/fivem")
-        if (!response.ok) throw new Error("Falha ao carregar")
-        const data = await response.json()
-        setFivemData(data)
-      } catch (err) {
-        console.error("Erro FiveM:", err)
-      } finally {
         setLoadingFivem(false)
       }
     }
-    fetchFivemData()
+    
+    fetchGamesData()
+    
+    // Atualizar a cada 30 segundos (mesmo intervalo do contador do topo)
+    const interval = setInterval(fetchGamesData, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const accentColor = activeTab === "roblox" ? "rgba(255,77,77,0.1)" : "rgba(249,115,22,0.1)"
@@ -685,12 +586,12 @@ export function GamesSection() {
   return (
     <section className="relative py-16 md:py-24 lg:py-32 overflow-hidden">
       {/* Background */}
-      <div className={`absolute inset-0 bg-gradient-to-b ${bgColor} transition-all duration-500`} />
+      <div className={`absolute inset-0 bg-gradient-to-b ${bgColor}`} />
       <div 
         className="absolute inset-0 transition-all duration-500"
         style={{ background: `radial-gradient(ellipse at center, ${accentColor} 0%, transparent 70%)` }}
       />
-      <FloatingBlocks color={activeTab === "roblox" ? "bg-red-500/20" : "bg-orange-500/20"} />
+      <FloatingBlocks color={activeTab === "roblox" ? "bg-roblox-red/20" : "bg-orange-500/20"} />
 
       <div className="relative container mx-auto px-4 lg:px-8">
         {/* Section Header */}
@@ -701,25 +602,17 @@ export function GamesSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-8 md:mb-12"
         >
-          <motion.span 
-            key={activeTab}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={`inline-block px-5 py-2 rounded-full border text-sm font-semibold mb-6 ${
-              activeTab === "roblox" 
-                ? "bg-red-500/10 border-red-500/30 text-red-400"
-                : "bg-orange-500/10 border-orange-500/30 text-orange-400"
-            }`}
-          >
-            ✨ Nossos Universos
-          </motion.span>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground mb-4 tracking-tight">
-            JOGUE{" "}
-            <span className={activeTab === "roblox" ? "text-red-500" : "text-orange-500"}>
-              CONOSCO
-            </span>
+          <span className={`inline-block px-4 py-1.5 rounded-full border text-sm font-medium mb-4 ${
+            activeTab === "roblox" 
+              ? "bg-roblox-red/10 border-roblox-red/20 text-roblox-red"
+              : "bg-orange-500/10 border-orange-500/20 text-orange-500"
+          }`}>
+            Nossos Universos
+          </span>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground mb-3 md:mb-4">
+            JOGUE <span className={activeTab === "roblox" ? "text-roblox-red" : "text-orange-500"}>CONOSCO</span>
           </h2>
-          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
             Explore nossas comunidades em múltiplas plataformas. Conecte-se com outros jogadores e viva experiências únicas.
           </p>
         </motion.div>
@@ -739,9 +632,9 @@ export function GamesSection() {
             {activeTab === "roblox" ? (
               <motion.div
                 key="roblox"
-                initial={{ opacity: 0, x: -30 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 30 }}
+                exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3 }}
               >
                 <RobloxContent robloxData={robloxData} loading={loadingRoblox} />
@@ -749,9 +642,9 @@ export function GamesSection() {
             ) : (
               <motion.div
                 key="gtarp"
-                initial={{ opacity: 0, x: 30 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
+                exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
                 <GtaRpContent fivemData={fivemData} loading={loadingFivem} />

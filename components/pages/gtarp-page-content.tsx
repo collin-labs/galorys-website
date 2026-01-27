@@ -806,10 +806,29 @@ export function GtaRpPageContent() {
     async function fetchFivemData() {
       try {
         setFivemLoading(true)
-        const response = await fetch("/api/fivem")
-        if (!response.ok) throw new Error("Falha ao carregar FiveM")
+        const response = await fetch("/api/games-stats")
+        if (!response.ok) throw new Error("Falha ao carregar")
         const data = await response.json()
-        setFivemData(data)
+        // Adaptar para o formato esperado pelo componente
+        setFivemData({
+          servers: (data.fivem?.servers || []).map((s: any) => ({
+            code: s.code,
+            game: s.game,
+            name: s.name,
+            players: s.players,
+            maxPlayers: s.maxPlayers || 0,
+            online: s.online || s.players > 0,
+            hostname: s.hostname || s.name,
+            connectUrl: s.url || `https://cfx.re/join/${s.code}`,
+            serverIp: "",
+            resources: 0,
+            instagram: s.instagram || null,
+            videoPath: s.video || null,
+            discordInvite: s.discord || null
+          })),
+          totalPlayers: data.fivem?.totalPlayers || 0,
+          fetchedAt: data.fetchedAt
+        })
       } catch (err) {
         console.error("Erro FiveM:", err)
       } finally {
@@ -834,8 +853,8 @@ export function GtaRpPageContent() {
     fetchFivemData()
     fetchDiscordData()
     
-    // Atualizar FiveM a cada 60 segundos
-    const fivemInterval = setInterval(fetchFivemData, 60000)
+    // Atualizar FiveM a cada 30 segundos (mesmo intervalo do contador do topo)
+    const fivemInterval = setInterval(fetchFivemData, 30000)
     // Atualizar Discord a cada 5 minutos
     const discordInterval = setInterval(fetchDiscordData, 300000)
     
