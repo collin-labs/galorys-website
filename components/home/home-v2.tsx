@@ -15,7 +15,7 @@ const sectionComponents: Record<string, React.ComponentType> = {
   teams: TeamsSectionV2,
   achievements: AchievementsSection,
   players: PlayersSection,
-  roblox: GamesSection,
+  roblox: GamesSection,  // GamesSection tem abas: Roblox + GTA
   matches: MatchesSection,
   partners: PartnersSection,
   cta: CtaSection,
