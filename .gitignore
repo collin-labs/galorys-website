@@ -34,10 +34,13 @@ yarn-error.log*
 *.zip
 *.rar
 
-# arquivos grandes
-*.mp4
+# arquivos grandes (exceto public/videos)
 *.mov
 *.avi
+
+# permitir videos do site
+!/public/videos/*.mp4
+!/public/images/wallpapers/*.mp4
 
 # arquivos de backup/rascunho (começam com _)
 **/_*.tsx
