@@ -10,12 +10,16 @@ import { LiveCounter } from "@/components/sections/live-counter"
 import { prisma } from "@/lib/prisma"
 
 // Mapear slug para componente
+// Inclui slugs antigos (do seed.ts) e novos (do admin) para compatibilidade
 const sectionComponents: Record<string, React.ComponentType> = {
   hero: HeroSection,
   teams: TeamsSection,
+  "elite-teams": TeamsSection,  // slug antigo do seed
   achievements: AchievementsSection,
   players: PlayersSection,
+  "featured-players": PlayersSection,  // slug antigo do seed
   roblox: GamesSection,  // GamesSection tem abas: Roblox + GTA
+  gtarp: GamesSection,   // slug antigo do seed (separado)
   matches: MatchesSection,
   partners: PartnersSection,
   cta: CtaSection,
@@ -31,33 +35,43 @@ export async function HomeV1() {
       orderBy: { order: 'asc' },
       select: { slug: true, active: true, order: true }
     })
+    console.log('🏠 Seções do banco:', sections.map(s => s.slug))
   } catch (error) {
     // Se der erro (ex: banco não tem seções ainda), mostrar todas
-    console.error('Erro ao buscar seções:', error)
+    console.error('❌ Erro ao buscar seções:', error)
     sections = [
       { slug: 'hero', active: true, order: 1 },
-      { slug: 'teams', active: true, order: 2 },
-      { slug: 'achievements', active: true, order: 3 },
-      { slug: 'players', active: true, order: 4 },
-      { slug: 'roblox', active: true, order: 5 },
-      { slug: 'matches', active: true, order: 6 },
-      { slug: 'partners', active: true, order: 7 },
-      { slug: 'cta', active: true, order: 8 },
+      { slug: 'elite-teams', active: true, order: 2 },
+      { slug: 'featured-players', active: true, order: 3 },
+      { slug: 'matches', active: true, order: 4 },
+      { slug: 'achievements', active: true, order: 5 },
+      { slug: 'roblox', active: true, order: 6 },
+      { slug: 'gtarp', active: true, order: 7 },
+      { slug: 'partners', active: true, order: 8 },
     ]
   }
 
   // Se não houver seções no banco, usar padrão
   if (sections.length === 0) {
+    console.log('⚠️ Nenhuma seção no banco, usando fallback')
     sections = [
       { slug: 'hero', active: true, order: 1 },
-      { slug: 'teams', active: true, order: 2 },
-      { slug: 'achievements', active: true, order: 3 },
-      { slug: 'players', active: true, order: 4 },
-      { slug: 'roblox', active: true, order: 5 },
-      { slug: 'matches', active: true, order: 6 },
-      { slug: 'partners', active: true, order: 7 },
-      { slug: 'cta', active: true, order: 8 },
+      { slug: 'elite-teams', active: true, order: 2 },
+      { slug: 'featured-players', active: true, order: 3 },
+      { slug: 'matches', active: true, order: 4 },
+      { slug: 'achievements', active: true, order: 5 },
+      { slug: 'roblox', active: true, order: 6 },
+      { slug: 'gtarp', active: true, order: 7 },
+      { slug: 'partners', active: true, order: 8 },
     ]
+  }
+
+  console.log('🔄 Renderizando seções:', sections.map(s => `${s.slug} -> ${sectionComponents[s.slug] ? '✅' : '❌'}`))
+
+  // Filtrar gtarp se roblox já existir (GamesSection já tem as duas abas)
+  const hasRoblox = sections.some(s => s.slug === 'roblox')
+  if (hasRoblox) {
+    sections = sections.filter(s => s.slug !== 'gtarp')
   }
 
   return (
@@ -65,7 +79,10 @@ export async function HomeV1() {
       <LiveCounter />
       {sections.map((section) => {
         const Component = sectionComponents[section.slug]
-        if (!Component) return null
+        if (!Component) {
+          console.log(`❌ Componente não encontrado para slug: ${section.slug}`)
+          return null
+        }
         return <Component key={section.slug} />
       })}
     </>

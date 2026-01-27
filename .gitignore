@@ -34,7 +34,7 @@ yarn-error.log*
 *.zip
 *.rar
 
-# arquivos grandes (exceto public/videos)
+# arquivos grandes
 *.mov
 *.avi
 
