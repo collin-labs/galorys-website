@@ -802,14 +802,15 @@ async function main() {
   console.log('🏠 Criando seções da home...')
 
   const homeSectionsData = [
-    { name: 'Hero', slug: 'hero', order: 1 },
-    { name: 'Times de Elite', slug: 'elite-teams', order: 2 },
-    { name: 'Jogadores em Destaque', slug: 'featured-players', order: 3 },
-    { name: 'Próximas Partidas', slug: 'matches', order: 4 },
-    { name: 'Conquistas Históricas', slug: 'achievements', order: 5 },
-    { name: 'Roblox', slug: 'roblox', order: 6 },
-    { name: 'GTA RP', slug: 'gtarp', order: 7 },
-    { name: 'Parceiros', slug: 'partners', order: 8 },
+    { name: 'Hero', slug: 'hero', description: 'Banner principal com "SOMOS GALORYS"', order: 1 },
+    { name: 'Pioneiros Roblox', slug: 'pioneers', description: 'Primeira empresa gamer do Brasil a projetar jogos de Roblox', order: 2 },
+    { name: 'Times de Elite', slug: 'elite-teams', description: 'Grid de times/modalidades', order: 3 },
+    { name: 'Jogadores em Destaque', slug: 'featured-players', description: 'Jogadores destacados', order: 4 },
+    { name: 'Conquistas', slug: 'achievements', description: 'Contadores de conquistas', order: 5 },
+    { name: 'Roblox & GTA', slug: 'roblox', description: 'Integração com Roblox e servidores GTA RP', order: 6 },
+    { name: 'Próximas Partidas', slug: 'matches', description: 'Próximas partidas (só aparece se tiver partidas cadastradas)', order: 7 },
+    { name: 'Parceiros', slug: 'partners', description: 'Logos dos parceiros/patrocinadores', order: 8 },
+    { name: 'Call to Action', slug: 'cta', description: 'Seção final de engajamento', order: 9 },
   ]
 
   for (const section of homeSectionsData) {
@@ -827,7 +828,6 @@ async function main() {
   // ============================================
   console.log('🎮 Criando links dos jogos...')
 
-
   const gameLinksData = [
     {
       game: 'roblox',
@@ -835,16 +835,6 @@ async function main() {
       serverCode: '76149317725679',
       serverUrl: 'https://www.roblox.com/games/76149317725679',
       instagram: '@galorysroblox',
-      videoPath: '/videos/galorys-video.mp4',
-      discordInvite: null,
-    },
-    {
-      game: 'roblox-2',
-      name: 'Escape Tsunami For Animals',
-      serverCode: '131891835047442',
-      serverUrl: 'https://www.roblox.com/games/131891835047442/Escape-Tsunami-For-Animals',
-      instagram: '@galorysroblox',
-      videoPath: null,
       discordInvite: null,
     },
     {
@@ -933,7 +923,7 @@ async function main() {
   console.log('   - 15 itens de rodapé')
   console.log('   - 6 redes sociais')
   console.log('   - 8 seções da home')
-  console.log('   - 4 links de jogos (Roblox 1 + Roblox 2 + KUSH + FLOW)')
+  console.log('   - 3 links de jogos (Roblox + KUSH + FLOW)')
   console.log('   - 3 parceiros')
   console.log('   - 3 configurações do site')
 }

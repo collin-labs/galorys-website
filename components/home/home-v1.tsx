@@ -7,12 +7,14 @@ import { MatchesSection } from "@/components/sections/matches-section"
 import { PartnersSection } from "@/components/sections/partners-section"
 import { CtaSection } from "@/components/sections/cta-section"
 import { LiveCounter } from "@/components/sections/live-counter"
+import { PioneersSection } from "@/components/sections/pioneers-section"
 import { prisma } from "@/lib/prisma"
 
 // Mapear slug para componente
 // Inclui slugs antigos (do seed.ts) e novos (do admin) para compatibilidade
 const sectionComponents: Record<string, React.ComponentType> = {
   hero: HeroSection,
+  pioneers: PioneersSection,  // NOVA SEÇÃO PIONEIROS
   teams: TeamsSection,
   "elite-teams": TeamsSection,  // slug antigo do seed
   achievements: AchievementsSection,
@@ -35,34 +37,34 @@ export async function HomeV1() {
       orderBy: { order: 'asc' },
       select: { slug: true, active: true, order: true }
     })
-    console.log('🏠 Seções do banco:', sections.map(s => s.slug))
   } catch (error) {
     // Se der erro (ex: banco não tem seções ainda), mostrar todas
-    console.error('❌ Erro ao buscar seções:', error)
+    console.error('Erro ao buscar seções:', error)
     sections = [
       { slug: 'hero', active: true, order: 1 },
-      { slug: 'elite-teams', active: true, order: 2 },
-      { slug: 'featured-players', active: true, order: 3 },
-      { slug: 'matches', active: true, order: 4 },
+      { slug: 'pioneers', active: true, order: 2 },
+      { slug: 'elite-teams', active: true, order: 3 },
+      { slug: 'featured-players', active: true, order: 4 },
       { slug: 'achievements', active: true, order: 5 },
       { slug: 'roblox', active: true, order: 6 },
       { slug: 'gtarp', active: true, order: 7 },
-      { slug: 'partners', active: true, order: 8 },
+      { slug: 'matches', active: true, order: 8 },
+      { slug: 'partners', active: true, order: 9 },
     ]
   }
 
   // Se não houver seções no banco, usar padrão
   if (sections.length === 0) {
-    console.log('⚠️ Nenhuma seção no banco, usando fallback')
     sections = [
       { slug: 'hero', active: true, order: 1 },
-      { slug: 'elite-teams', active: true, order: 2 },
-      { slug: 'featured-players', active: true, order: 3 },
-      { slug: 'matches', active: true, order: 4 },
+      { slug: 'pioneers', active: true, order: 2 },
+      { slug: 'elite-teams', active: true, order: 3 },
+      { slug: 'featured-players', active: true, order: 4 },
       { slug: 'achievements', active: true, order: 5 },
       { slug: 'roblox', active: true, order: 6 },
       { slug: 'gtarp', active: true, order: 7 },
-      { slug: 'partners', active: true, order: 8 },
+      { slug: 'matches', active: true, order: 8 },
+      { slug: 'partners', active: true, order: 9 },
     ]
   }
 

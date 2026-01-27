@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Layers, RefreshCw, GripVertical, Eye, EyeOff, AlertCircle, Loader2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -16,13 +17,14 @@ interface Section {
 // Seções padrão para seed inicial
 const defaultSections = [
   { name: "Banner Principal", slug: "hero", description: 'Seção principal com "SOMOS GALORYS"', order: 1 },
-  { name: "Times de Elite", slug: "teams", description: "Grid de times/modalidades", order: 2 },
-  { name: "Conquistas", slug: "achievements", description: "Contadores de conquistas", order: 3 },
-  { name: "Jogadores em Destaque", slug: "players", description: "Jogadores destacados", order: 4 },
-  { name: "Roblox", slug: "roblox", description: "Integração com Roblox", order: 5 },
-  { name: "Partidas", slug: "matches", description: "Próximas partidas", order: 6 },
-  { name: "Nossos Parceiros", slug: "partners", description: "Logos dos parceiros/patrocinadores", order: 7 },
-  { name: "Call to Action", slug: "cta", description: "Seção final de engajamento", order: 8 },
+  { name: "Pioneiros Roblox", slug: "pioneers", description: 'Primeira empresa gamer do Brasil a projetar jogos de Roblox', order: 2 },
+  { name: "Times de Elite", slug: "teams", description: "Grid de times/modalidades", order: 3 },
+  { name: "Conquistas", slug: "achievements", description: "Contadores de conquistas", order: 4 },
+  { name: "Jogadores em Destaque", slug: "players", description: "Jogadores destacados", order: 5 },
+  { name: "Roblox", slug: "roblox", description: "Integração com Roblox", order: 6 },
+  { name: "Partidas", slug: "matches", description: "Próximas partidas", order: 7 },
+  { name: "Nossos Parceiros", slug: "partners", description: "Logos dos parceiros/patrocinadores", order: 8 },
+  { name: "Call to Action", slug: "cta", description: "Seção final de engajamento", order: 9 },
 ]
 
 export default function SecoesPage() {
@@ -153,10 +155,18 @@ export default function SecoesPage() {
           </div>
           <p className="text-sm text-muted-foreground mt-1">Gerencie quais seções aparecem na página inicial</p>
         </div>
-        <Button onClick={handleRefresh} variant="outline" className="border-border text-foreground bg-transparent" disabled={saving}>
-          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleRefresh} variant="outline" className="border-border text-foreground bg-transparent" disabled={saving}>
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+            Atualizar
+          </Button>
+          <Link href="/admin/secoes/novo">
+            <Button className="bg-primary hover:bg-primary/90">
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Seção
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Dica */}

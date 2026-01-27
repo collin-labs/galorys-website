@@ -4,7 +4,7 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Layers, Save } from "lucide-react"
+import { ArrowLeft, Layers, Save, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,6 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 export default function NovaSecaoPage() {
   const router = useRouter()
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -21,10 +23,55 @@ export default function NovaSecaoPage() {
     isActive: true,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Gerar slug automaticamente do nome
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+
+  const handleNameChange = (name: string) => {
+    setFormData({
+      ...formData,
+      name,
+      slug: generateSlug(name)
+    })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Creating section:", formData)
-    router.push("/admin/secoes")
+    setError("")
+    setSaving(true)
+
+    try {
+      const response = await fetch("/api/admin/home-sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          slug: formData.slug,
+          description: formData.description || null,
+          order: formData.order,
+          active: formData.isActive,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        setError(data.error || "Erro ao criar seção")
+        return
+      }
+
+      router.push("/admin/secoes")
+    } catch (err) {
+      setError("Erro ao criar seção")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -43,6 +90,13 @@ export default function NovaSecaoPage() {
         </div>
       </div>
 
+      {/* Erro */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400">
+          {error}
+        </div>
+      )}
+
       {/* Form */}
       <form onSubmit={handleSubmit} className="max-w-2xl">
         <div className="bg-card border border-border rounded-xl p-6 space-y-6">
@@ -53,8 +107,9 @@ export default function NovaSecaoPage() {
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => handleNameChange(e.target.value)}
               className="bg-background border-border text-foreground"
+              placeholder="Ex: Pioneiros Roblox"
               required
             />
           </div>
@@ -68,8 +123,12 @@ export default function NovaSecaoPage() {
               value={formData.slug}
               onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
               className="bg-background border-border text-foreground"
+              placeholder="Ex: pioneers"
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Identificador único usado no código. Use apenas letras minúsculas, números e hífens.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -81,6 +140,7 @@ export default function NovaSecaoPage() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="bg-background border-border text-foreground min-h-[100px]"
+              placeholder="Descrição opcional da seção"
             />
           </div>
 
@@ -111,8 +171,16 @@ export default function NovaSecaoPage() {
         </div>
 
         <div className="flex items-center gap-3 mt-6">
-          <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white">
-            <Save className="w-4 h-4 mr-1" /> Criar Seção
+          <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white" disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-1" /> Criar Seção
+              </>
+            )}
           </Button>
           <Link href="/admin/secoes">
             <Button type="button" variant="ghost" className="text-muted-foreground hover:text-foreground">

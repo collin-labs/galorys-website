@@ -1,9 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Seções padrão que devem sempre existir
+const requiredSections = [
+  { name: 'Hero', slug: 'hero', description: 'Banner principal', order: 1 },
+  { name: 'Pioneiros Roblox', slug: 'pioneers', description: 'Primeira empresa gamer do Brasil a projetar jogos de Roblox', order: 2 },
+]
+
+// Garantir que seções obrigatórias existam
+async function ensureRequiredSections() {
+  for (const section of requiredSections) {
+    const exists = await prisma.homeSection.findUnique({
+      where: { slug: section.slug }
+    })
+    
+    if (!exists) {
+      // Atualizar ordem das seções existentes para abrir espaço
+      await prisma.homeSection.updateMany({
+        where: { order: { gte: section.order } },
+        data: { order: { increment: 1 } }
+      })
+      
+      // Criar a seção
+      await prisma.homeSection.create({
+        data: {
+          name: section.name,
+          slug: section.slug,
+          description: section.description,
+          order: section.order,
+          active: true,
+        }
+      })
+      console.log(`✅ Seção ${section.name} criada automaticamente`)
+    }
+  }
+}
+
 // GET - Listar todas as seções
 export async function GET() {
   try {
+    // Garantir que seções obrigatórias existam
+    await ensureRequiredSections()
+    
     const sections = await prisma.homeSection.findMany({
       orderBy: { order: 'asc' },
     })

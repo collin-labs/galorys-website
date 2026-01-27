@@ -7,12 +7,14 @@ import { MatchesSection } from "@/components/sections/matches-section"
 import { PartnersSection } from "@/components/sections/partners-section"
 import { CtaSection } from "@/components/sections/cta-section"
 import { LiveCounter } from "@/components/sections/live-counter"
+import { PioneersSection } from "@/components/sections/pioneers-section"
 import { prisma } from "@/lib/prisma"
 
 // Mapear slug para componente (V2 usa componentes diferentes para hero e teams)
 // Inclui slugs antigos (do seed.ts) e novos (do admin) para compatibilidade
 const sectionComponents: Record<string, React.ComponentType> = {
   hero: HeroSectionV2,
+  pioneers: PioneersSection,  // NOVA SEÇÃO PIONEIROS
   teams: TeamsSectionV2,
   "elite-teams": TeamsSectionV2,  // slug antigo do seed
   achievements: AchievementsSection,
@@ -35,31 +37,32 @@ export async function HomeV2() {
       orderBy: { order: 'asc' },
       select: { slug: true, active: true, order: true }
     })
-    console.log('🏠 [V2] Seções do banco:', sections.map(s => s.slug))
   } catch (error) {
-    console.error('❌ [V2] Erro ao buscar seções:', error)
-    // Fallback com slugs do seed.ts (antigos)
+    console.error('Erro ao buscar seções:', error)
     sections = [
       { slug: 'hero', active: true, order: 1 },
-      { slug: 'elite-teams', active: true, order: 2 },
-      { slug: 'featured-players', active: true, order: 3 },
-      { slug: 'matches', active: true, order: 4 },
+      { slug: 'pioneers', active: true, order: 2 },
+      { slug: 'elite-teams', active: true, order: 3 },
+      { slug: 'featured-players', active: true, order: 4 },
       { slug: 'achievements', active: true, order: 5 },
       { slug: 'roblox', active: true, order: 6 },
-      { slug: 'partners', active: true, order: 7 },
+      { slug: 'gtarp', active: true, order: 7 },
+      { slug: 'matches', active: true, order: 8 },
+      { slug: 'partners', active: true, order: 9 },
     ]
   }
 
   if (sections.length === 0) {
-    console.log('⚠️ [V2] Nenhuma seção no banco, usando fallback')
     sections = [
       { slug: 'hero', active: true, order: 1 },
-      { slug: 'elite-teams', active: true, order: 2 },
-      { slug: 'featured-players', active: true, order: 3 },
-      { slug: 'matches', active: true, order: 4 },
+      { slug: 'pioneers', active: true, order: 2 },
+      { slug: 'elite-teams', active: true, order: 3 },
+      { slug: 'featured-players', active: true, order: 4 },
       { slug: 'achievements', active: true, order: 5 },
       { slug: 'roblox', active: true, order: 6 },
-      { slug: 'partners', active: true, order: 7 },
+      { slug: 'gtarp', active: true, order: 7 },
+      { slug: 'matches', active: true, order: 8 },
+      { slug: 'partners', active: true, order: 9 },
     ]
   }
 
@@ -68,8 +71,6 @@ export async function HomeV2() {
   if (hasRoblox) {
     sections = sections.filter(s => s.slug !== 'gtarp')
   }
-
-  console.log('🔄 [V2] Renderizando seções:', sections.map(s => `${s.slug} -> ${sectionComponents[s.slug] ? '✅' : '❌'}`))
 
   return (
     <>
