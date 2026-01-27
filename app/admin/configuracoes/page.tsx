@@ -22,6 +22,14 @@ const configItems = [
     bgColor: 'bg-blue-500/20'
   },
   {
+    title: 'Segurança',
+    description: 'Trocar senha de acesso ao painel',
+    icon: Shield,
+    href: '/admin/configuracoes/seguranca',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/20'
+  },
+  {
     title: 'Email',
     description: 'Provedor de email, SMTP, recuperação de senha',
     icon: Mail,
