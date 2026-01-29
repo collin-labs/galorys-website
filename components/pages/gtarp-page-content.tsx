@@ -8,7 +8,7 @@ import {
   Globe, Users, Play, Pause, Volume2, VolumeX, 
   ExternalLink, Loader2, ArrowRight, Instagram,
   Gamepad2, Crown, MessageCircle,
-  Sparkles, Zap, Shield, Star, ChevronRight, ChevronLeft,
+  Sparkles, Zap, Shield, Star, ChevronRight, ChevronLeft, ChevronDown,
   UserCheck, Radio
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -672,144 +672,264 @@ function DiscordCommunitiesSection({
       transition={{ delay: 0.35 }}
       className="mb-12"
     >
-      <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-6 flex items-center gap-3">
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-6 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#5865F2]/10 flex items-center justify-center">
           <MessageCircle className="w-5 h-5 text-[#5865F2]" />
         </div>
         Comunidades Discord
       </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {communities.map((community, index) => {
-          const memberCount = community.data?.memberCount || 0
-          const onlineCount = community.data?.onlineCount || 0
-          const inviteUrl = community.data?.inviteUrl || `https://discord.gg/${community.fallbackCode}`
-          const icon = community.data?.icon
-          const isOnline = community.data?.online ?? false
-          const guildName = community.data?.guildName || community.name
-          const verified = community.data?.verified || false
-          const partnered = community.data?.partnered || false
+      {/* ========================================
+          MOBILE/TABLET: Carrossel (< md = 768px)
+          ======================================== */}
+      <div className="md:hidden">
+        <MobileDiscordCarousel communities={communities} loading={loading} />
+      </div>
 
-          return (
-            <motion.div
-              key={community.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 + index * 0.1 }}
-              className="group"
-            >
-              <div className="relative bg-card/50 dark:bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden border border-[#5865F2]/20 hover:border-[#5865F2]/50 transition-all duration-500 hover:shadow-[0_0_60px_rgba(88,101,242,0.15)]">
-                {/* Glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#5865F2]/0 to-[#5865F2]/0 group-hover:from-[#5865F2]/5 group-hover:to-[#5865F2]/5 transition-all duration-500 pointer-events-none" />
-                
-                {/* Header with gradient */}
-                <div className={`relative h-24 bg-gradient-to-r ${community.gradient} overflow-hidden`}>
-                  <div className="absolute inset-0 bg-black/20 pointer-events-none" />
-                  <div className="absolute inset-0 bg-[url('/images/pattern-dots.png')] opacity-10 pointer-events-none" />
-                  
-                  {/* Decorative elements */}
-                  <motion.div 
-                    className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-xl"
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-                    transition={{ duration: 4, repeat: Infinity }}
-                  />
-                  
-                  {/* Online status badge */}
-                  <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/30 backdrop-blur-sm">
-                    <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-                    <span className="text-white text-xs font-medium">{isOnline ? 'Online' : 'Offline'}</span>
-                  </div>
+      {/* ========================================
+          DESKTOP: Grid Original (>= md = 768px)
+          100% IGUAL AO ORIGINAL
+          ======================================== */}
+      <div className="hidden md:grid md:grid-cols-2 gap-6">
+        {communities.map((community, index) => (
+          <DiscordCommunityCard 
+            key={community.name} 
+            community={community} 
+            loading={loading} 
+            index={index} 
+          />
+        ))}
+      </div>
+    </motion.div>
+  )
+}
 
-                  {/* Badges */}
-                  {(verified || partnered) && (
-                    <div className="absolute top-4 left-4 flex gap-2">
-                      {verified && (
-                        <div className="px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm">
-                          <Star className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                      {partnered && (
-                        <div className="px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm">
-                          <Crown className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  )}
+// ============================================
+// MOBILE DISCORD CAROUSEL (< md = 768px)
+// ============================================
+
+function MobileDiscordCarousel({
+  communities,
+  loading
+}: {
+  communities: Array<{
+    data: DiscordCommunity | undefined
+    name: string
+    description: string
+    color: string
+    fallbackCode: string
+    icon: React.ReactNode
+    gradient: string
+  }>
+  loading: boolean
+}) {
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  const checkScroll = () => {
+    if (carouselRef.current) {
+      const { scrollLeft, clientWidth } = carouselRef.current
+      const cardWidth = clientWidth * 0.9
+      const newIndex = Math.round(scrollLeft / cardWidth)
+      setCurrentIndex(Math.min(newIndex, communities.length - 1))
+    }
+  }
+
+  const scrollToIndex = (index: number) => {
+    if (carouselRef.current) {
+      const cardWidth = carouselRef.current.offsetWidth * 0.9
+      carouselRef.current.scrollTo({ left: index * cardWidth, behavior: 'smooth' })
+    }
+  }
+
+  useEffect(() => {
+    const carousel = carouselRef.current
+    if (carousel) {
+      carousel.addEventListener('scroll', checkScroll)
+      return () => carousel.removeEventListener('scroll', checkScroll)
+    }
+  }, [])
+
+  return (
+    <div className="relative -mx-4 px-4">
+      <div
+        ref={carouselRef}
+        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-4"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {communities.map((community, index) => (
+          <div
+            key={community.name}
+            className="flex-shrink-0 w-[90%] snap-center"
+          >
+            <DiscordCommunityCard community={community} loading={loading} index={index} />
+          </div>
+        ))}
+      </div>
+
+      {/* Dots */}
+      <div className="flex items-center justify-center gap-3 mt-2">
+        {communities.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => scrollToIndex(index)}
+            className={`h-2.5 rounded-full transition-all duration-300 ${
+              index === currentIndex
+                ? 'bg-[#5865F2] w-7'
+                : 'bg-muted-foreground/30 w-2.5'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ============================================
+// DISCORD COMMUNITY CARD (Shared component)
+// ============================================
+
+function DiscordCommunityCard({
+  community,
+  loading,
+  index
+}: {
+  community: {
+    data: DiscordCommunity | undefined
+    name: string
+    description: string
+    color: string
+    fallbackCode: string
+    icon: React.ReactNode
+    gradient: string
+  }
+  loading: boolean
+  index: number
+}) {
+  const memberCount = community.data?.memberCount || 0
+  const onlineCount = community.data?.onlineCount || 0
+  const inviteUrl = community.data?.inviteUrl || `https://discord.gg/${community.fallbackCode}`
+  const icon = community.data?.icon
+  const isOnline = community.data?.online ?? false
+  const guildName = community.data?.guildName || community.name
+  const verified = community.data?.verified || false
+  const partnered = community.data?.partnered || false
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 + index * 0.1 }}
+      className="group h-full"
+    >
+      <div className="relative bg-card/50 dark:bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden border border-[#5865F2]/20 hover:border-[#5865F2]/50 transition-all duration-500 hover:shadow-[0_0_60px_rgba(88,101,242,0.15)] h-full">
+        {/* Glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#5865F2]/0 to-[#5865F2]/0 group-hover:from-[#5865F2]/5 group-hover:to-[#5865F2]/5 transition-all duration-500 pointer-events-none" />
+        
+        {/* Header with gradient */}
+        <div className={`relative h-20 sm:h-24 bg-gradient-to-r ${community.gradient} overflow-hidden`}>
+          <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+          <div className="absolute inset-0 bg-[url('/images/pattern-dots.png')] opacity-10 pointer-events-none" />
+          
+          {/* Decorative elements */}
+          <motion.div 
+            className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-xl"
+            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+            transition={{ duration: 4, repeat: Infinity }}
+          />
+          
+          {/* Online status badge */}
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-black/30 backdrop-blur-sm">
+            <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+            <span className="text-white text-[10px] sm:text-xs font-medium">{isOnline ? 'Online' : 'Offline'}</span>
+          </div>
+
+          {/* Badges */}
+          {(verified || partnered) && (
+            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex gap-2">
+              {verified && (
+                <div className="px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm">
+                  <Star className="w-3 h-3 text-white" />
                 </div>
-
-                {/* Content */}
-                <div className="relative z-10 p-6">
-                  {/* Icon/Avatar */}
-                  <div className="flex items-start gap-4 -mt-12 mb-4">
-                    <div className={`relative w-20 h-20 rounded-2xl bg-gradient-to-br ${community.gradient} flex items-center justify-center shadow-lg border-4 border-background dark:border-[#0B0B0F] overflow-hidden`}>
-                      {icon ? (
-                        <img 
-                          src={icon} 
-                          alt={guildName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-white">{community.icon}</span>
-                      )}
-                    </div>
-                    
-                    <div className="pt-12">
-                      <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-                        {guildName}
-                        {(verified || partnered) && (
-                          <span className="text-[#5865F2]">
-                            <Sparkles className="w-4 h-4" />
-                          </span>
-                        )}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">{community.description}</p>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-background/50 dark:bg-white/5 rounded-xl p-4 text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <Users className="w-4 h-4 text-[#5865F2]" />
-                      </div>
-                      {loading ? (
-                        <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
-                      ) : (
-                        <p className="text-2xl font-bold text-foreground">{formatNumber(memberCount)}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground">Membros</p>
-                    </div>
-                    <div className="bg-background/50 dark:bg-white/5 rounded-xl p-4 text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <Radio className="w-4 h-4 text-green-500" />
-                      </div>
-                      {loading ? (
-                        <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
-                      ) : (
-                        <p className="text-2xl font-bold text-foreground">{formatNumber(onlineCount)}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground">Online</p>
-                    </div>
-                  </div>
-
-                  {/* Join Button */}
-                  <Button
-                    asChild
-                    size="lg"
-                    className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_10px_40px_rgba(88,101,242,0.4)]"
-                  >
-                    <a href={inviteUrl} target="_blank" rel="noopener noreferrer">
-                      <MessageCircle className="w-5 h-5 mr-2" />
-                      Entrar no Discord
-                      <ExternalLink className="w-4 h-4 ml-2" />
-                    </a>
-                  </Button>
+              )}
+              {partnered && (
+                <div className="px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm">
+                  <Crown className="w-3 h-3 text-white" />
                 </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 p-4 sm:p-6">
+          {/* Icon/Avatar */}
+          <div className="flex items-start gap-3 sm:gap-4 -mt-10 sm:-mt-12 mb-3 sm:mb-4">
+            <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gradient-to-br ${community.gradient} flex items-center justify-center shadow-lg border-4 border-background dark:border-[#0B0B0F] overflow-hidden flex-shrink-0`}>
+              {icon ? (
+                <img 
+                  src={icon} 
+                  alt={guildName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white">{community.icon}</span>
+              )}
+            </div>
+            
+            <div className="pt-10 sm:pt-12 min-w-0">
+              <h3 className="text-lg sm:text-xl font-bold text-foreground flex items-center gap-2 truncate">
+                {guildName}
+                {(verified || partnered) && (
+                  <span className="text-[#5865F2] flex-shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{community.description}</p>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-background/50 dark:bg-white/5 rounded-xl p-3 sm:p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Users className="w-4 h-4 text-[#5865F2]" />
               </div>
-            </motion.div>
-          )
-        })}
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
+              ) : (
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{formatNumber(memberCount)}</p>
+              )}
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Membros</p>
+            </div>
+            <div className="bg-background/50 dark:bg-white/5 rounded-xl p-3 sm:p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <Radio className="w-4 h-4 text-green-500" />
+              </div>
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
+              ) : (
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{formatNumber(onlineCount)}</p>
+              )}
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Online</p>
+            </div>
+          </div>
+
+          {/* Join Button */}
+          <Button
+            asChild
+            size="default"
+            className="w-full h-10 sm:h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_10px_40px_rgba(88,101,242,0.4)]"
+          >
+            <a href={inviteUrl} target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              <span className="text-sm sm:text-base">Entrar no Discord</span>
+              <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2" />
+            </a>
+          </Button>
+        </div>
       </div>
     </motion.div>
   )
@@ -825,21 +945,21 @@ function HowToConnect() {
       number: "01",
       title: "Baixe o FiveM",
       description: "Acesse fivem.net e baixe o cliente oficial",
-      icon: <Globe className="w-6 h-6" />,
+      icon: <Globe className="w-5 h-5 sm:w-6 sm:h-6" />,
       link: "https://fivem.net"
     },
     {
       number: "02", 
       title: "Instale e Abra",
       description: "Instale o FiveM e vincule sua conta Rockstar Games",
-      icon: <Gamepad2 className="w-6 h-6" />,
+      icon: <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6" />,
       link: null
     },
     {
       number: "03",
       title: "Conecte-se",
       description: "Clique no botão 'Conectar Agora' e entre no servidor!",
-      icon: <Play className="w-6 h-6" />,
+      icon: <Play className="w-5 h-5 sm:w-6 sm:h-6" />,
       link: null
     }
   ]
@@ -849,20 +969,31 @@ function HowToConnect() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
-      className="relative bg-card/50 dark:bg-white/5 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-border/50 dark:border-orange-500/20 mb-12 overflow-hidden"
+      className="relative bg-card/50 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border border-border/50 dark:border-orange-500/20 mb-12 overflow-hidden"
     >
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       
       <div className="relative">
-        <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-8 flex items-center gap-3">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-6 sm:mb-8 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
             <Gamepad2 className="w-5 h-5 text-orange-500" />
           </div>
           Como Conectar
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* ========================================
+            MOBILE/TABLET: Accordion (< md = 768px)
+            ======================================== */}
+        <div className="md:hidden">
+          <MobileHowToConnectAccordion steps={steps} />
+        </div>
+
+        {/* ========================================
+            DESKTOP: Grid Original (>= md = 768px)
+            100% IGUAL AO ORIGINAL
+            ======================================== */}
+        <div className="hidden md:grid md:grid-cols-3 gap-6">
           {steps.map((step, index) => (
             <motion.div
               key={step.number}
@@ -905,6 +1036,113 @@ function HowToConnect() {
         </div>
       </div>
     </motion.div>
+  )
+}
+
+// ============================================
+// MOBILE HOW TO CONNECT ACCORDION (< md = 768px)
+// ============================================
+
+function MobileHowToConnectAccordion({
+  steps
+}: {
+  steps: Array<{
+    number: string
+    title: string
+    description: string
+    icon: React.ReactNode
+    link: string | null
+  }>
+}) {
+  const [openIndex, setOpenIndex] = useState<number | null>(0)
+
+  const toggleStep = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index)
+  }
+
+  return (
+    <div className="space-y-3">
+      {steps.map((step, index) => (
+        <motion.div
+          key={step.number}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 * index }}
+          className="overflow-hidden"
+        >
+          {/* Accordion Header */}
+          <button
+            onClick={() => toggleStep(index)}
+            className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all duration-300 ${
+              openIndex === index
+                ? 'bg-orange-500/10 border border-orange-500/30'
+                : 'bg-background/50 dark:bg-black/20 border border-border/50 dark:border-white/5 hover:border-orange-500/20'
+            }`}
+          >
+            {/* Number badge */}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+              openIndex === index
+                ? 'bg-orange-500 text-white'
+                : 'bg-gradient-to-br from-orange-500/20 to-orange-600/20 text-orange-500'
+            }`}>
+              <span className="text-sm font-bold">{step.number}</span>
+            </div>
+            
+            {/* Title */}
+            <div className="flex-1 text-left">
+              <h3 className={`font-semibold transition-colors ${
+                openIndex === index ? 'text-orange-500' : 'text-foreground'
+              }`}>
+                {step.title}
+              </h3>
+            </div>
+            
+            {/* Chevron */}
+            <motion.div
+              animate={{ rotate: openIndex === index ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-muted-foreground"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </motion.div>
+          </button>
+
+          {/* Accordion Content */}
+          <AnimatePresence>
+            {openIndex === index && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 pt-3 ml-[52px]">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-orange-500">{step.icon}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground pt-2">
+                      {step.link ? (
+                        <>
+                          {step.description.split("fivem.net")[0]}
+                          <a href={step.link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline font-medium">
+                            fivem.net
+                          </a>
+                          {step.description.split("fivem.net")[1]}
+                        </>
+                      ) : (
+                        step.description
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      ))}
+    </div>
   )
 }
 
@@ -1013,30 +1251,6 @@ export function GtaRpPageContent() {
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg mb-8">
             Entre nos melhores servidores de GTA RP do Brasil. Ação, roleplay e diversão garantidos com a comunidade Galorys!
           </p>
-
-          {/* Quick stats badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="inline-flex items-center gap-4 px-6 py-3 rounded-full bg-card/50 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-orange-500/30"
-          >
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-foreground font-bold">
-                {fivemLoading ? <Loader2 className="w-4 h-4 animate-spin inline" /> : formatNumber(fivemData?.totalPlayers || 0)}
-              </span>
-              <span className="text-muted-foreground text-sm">jogando</span>
-            </div>
-            <div className="w-px h-4 bg-border dark:bg-white/20" />
-            <div className="flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-[#5865F2]" />
-              <span className="text-foreground font-bold">
-                {discordLoading ? <Loader2 className="w-4 h-4 animate-spin inline" /> : formatNumber(discordData?.totalMembers || 0)}
-              </span>
-              <span className="text-muted-foreground text-sm">membros</span>
-            </div>
-          </motion.div>
         </motion.div>
 
         {/* Community Highlight Stats */}
@@ -1054,6 +1268,24 @@ export function GtaRpPageContent() {
             </Button>
           </div>
         )}
+
+        {/* Section Header - Nossos Jogos */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mb-6 sm:mb-8"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+              <Gamepad2 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Nossos Jogos</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">2 servidores disponíveis</p>
+            </div>
+          </div>
+        </motion.div>
 
         {/* ========================================
             MOBILE/TABLET: Carrossel (< lg = 1024px)
