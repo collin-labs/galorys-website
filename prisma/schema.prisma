@@ -341,6 +341,7 @@ model GameLink {
   instagram     String?           // Handle do Instagram (ex: "@joguekush")
   videoPath     String?           // Caminho do vídeo (ex: "/videos/video-kush.mp4")
   discordInvite String?           // Código do convite Discord (ex: "flowrp" ou "kushpvp")
+  thumbnailUrl  String?      
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

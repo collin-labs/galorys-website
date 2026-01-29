@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { 
-  Gamepad2, Save, Loader2, Check, AlertCircle, 
-  RefreshCw, Instagram, Globe, Link2, Video
+  Gamepad2, Globe, Plus, Save, Loader2, Trash2, Search,
+  Instagram, Video, MessageCircle, Eye, EyeOff, Users,
+  Upload, Image as ImageIcon, X, Pencil, TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,190 +20,406 @@ interface GameLink {
   serverUrl: string | null
   instagram: string | null
   videoPath: string | null
+  discordInvite: string | null
+  thumbnailUrl: string | null
   active: boolean
 }
 
-// Card de configuração de cada jogo
-function GameLinkCard({ 
-  link, 
-  onSave,
-  saving,
-  color,
-  icon: Icon
+interface LookupData {
+  name: string
+  playing?: number
+  players?: number
+  visits?: number
+  favorites?: number
+  icon?: string | null
+  thumbnail?: string | null
+  url?: string
+}
+
+type Platform = "roblox" | "gtarp"
+
+function formatNumber(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M"
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K"
+  return num.toLocaleString("pt-BR")
+}
+
+// ========================================
+// COMPONENTE DE UPLOAD DE IMAGEM
+// ========================================
+function ImageUpload({ 
+  value, 
+  onChange,
+  onRemove 
 }: { 
-  link: GameLink
-  onSave: (data: Partial<GameLink>) => void
-  saving: boolean
-  color: string
-  icon: React.ElementType
+  value: string | null
+  onChange: (url: string) => void
+  onRemove: () => void
 }) {
-  const [formData, setFormData] = useState({
-    name: link.name,
-    serverCode: link.serverCode,
-    instagram: link.instagram || "",
-    videoPath: link.videoPath || "",
-  })
-  const [hasChanges, setHasChanges] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const { toast } = useToast()
 
-  useEffect(() => {
-    setFormData({
-      name: link.name,
-      serverCode: link.serverCode,
-      instagram: link.instagram || "",
-      videoPath: link.videoPath || "",
-    })
-    setHasChanges(false)
-  }, [link])
-
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    setHasChanges(true)
-  }
-
-  const handleSave = () => {
-    onSave({
-      game: link.game,
-      ...formData
-    })
-    setHasChanges(false)
-  }
-
-  const gameLabels: Record<string, { title: string; description: string }> = {
-    "roblox": {
-      title: "🔴 ROBLOX - Jogo 1",
-      description: "Primeiro jogo no Roblox (Evolução da Aura)"
-    },
-    "roblox-2": {
-      title: "🔴 ROBLOX - Jogo 2",
-      description: "Segundo jogo no Roblox (Escape Tsunami)"
-    },
-    "gtarp-kush": {
-      title: "🟠 GTA RP - KUSH PVP",
-      description: "Servidor FiveM KUSH PVP"
-    },
-    "gtarp-flow": {
-      title: "🟢 GTA RP - FLOW RP",
-      description: "Servidor FiveM Flow RP"
+  const handleUpload = async (file: File) => {
+    if (!file) return
+    
+    // Validar tipo
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Apenas imagens são permitidas", variant: "destructive" })
+      return
+    }
+    
+    // Validar tamanho (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Imagem muito grande (máx 5MB)", variant: "destructive" })
+      return
+    }
+    
+    setUploading(true)
+    
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      
+      const response = await fetch("/api/admin/game-links/upload", {
+        method: "POST",
+        body: formData
+      })
+      
+      const data = await response.json()
+      
+      if (data.error) {
+        toast({ title: data.error, variant: "destructive" })
+        return
+      }
+      
+      onChange(data.url)
+      toast({ title: "✅ Imagem enviada!" })
+    } catch (error) {
+      toast({ title: "Erro ao enviar imagem", variant: "destructive" })
+    } finally {
+      setUploading(false)
     }
   }
 
-  const labels = gameLabels[link.game] || { title: link.game, description: "" }
-  const isRoblox = link.game.startsWith("roblox")
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleUpload(file)
+  }
 
+  return (
+    <div className="space-y-2">
+      <Label className="flex items-center gap-2">
+        <ImageIcon className="w-4 h-4 text-purple-500" />
+        Imagem de Capa
+      </Label>
+      
+      {value ? (
+        <div className="relative rounded-xl overflow-hidden border border-border">
+          <img 
+            src={value} 
+            alt="Capa" 
+            className="w-full aspect-video object-cover"
+          />
+          <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <Button 
+              size="sm" 
+              variant="secondary"
+              onClick={() => inputRef.current?.click()}
+            >
+              <Upload className="w-4 h-4 mr-1" />
+              Trocar
+            </Button>
+            <Button 
+              size="sm" 
+              variant="destructive"
+              onClick={onRemove}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          className={`
+            relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
+            transition-all duration-200
+            ${dragOver 
+              ? "border-purple-500 bg-purple-500/10" 
+              : "border-border hover:border-purple-500/50 hover:bg-muted/50"
+            }
+          `}
+        >
+          {uploading ? (
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+              <p className="text-sm text-muted-foreground">Enviando...</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                <Upload className="w-6 h-6 text-purple-500" />
+              </div>
+              <p className="text-sm font-medium">Clique ou arraste uma imagem</p>
+              <p className="text-xs text-muted-foreground">PNG, JPG, WebP até 5MB</p>
+            </div>
+          )}
+        </div>
+      )}
+      
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) handleUpload(file)
+        }}
+      />
+    </div>
+  )
+}
+
+// ========================================
+// ABAS
+// ========================================
+function PlatformTabs({ 
+  active, 
+  onChange,
+  robloxCount,
+  gtarpCount
+}: { 
+  active: Platform
+  onChange: (p: Platform) => void
+  robloxCount: number
+  gtarpCount: number
+}) {
+  return (
+    <div className="flex gap-2">
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => onChange("roblox")}
+        className={`relative flex items-center gap-3 px-6 py-3.5 rounded-xl font-semibold transition-all ${
+          active === "roblox"
+            ? "text-white shadow-[0_0_30px_rgba(239,68,68,0.4)]"
+            : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-red-500/30"
+        }`}
+      >
+        {active === "roblox" && (
+          <motion.div
+            layoutId="activeTab"
+            className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600 rounded-xl"
+            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+          />
+        )}
+        <Gamepad2 className="w-5 h-5 relative z-10" />
+        <span className="relative z-10">Roblox</span>
+        <span className={`relative z-10 px-2 py-0.5 rounded-full text-xs font-bold ${
+          active === "roblox" ? "bg-white/20" : "bg-red-500/10 text-red-400"
+        }`}>
+          {robloxCount}
+        </span>
+      </motion.button>
+      
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => onChange("gtarp")}
+        className={`relative flex items-center gap-3 px-6 py-3.5 rounded-xl font-semibold transition-all ${
+          active === "gtarp"
+            ? "text-white shadow-[0_0_30px_rgba(249,115,22,0.4)]"
+            : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-orange-500/30"
+        }`}
+      >
+        {active === "gtarp" && (
+          <motion.div
+            layoutId="activeTab"
+            className="absolute inset-0 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl"
+            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+          />
+        )}
+        <Globe className="w-5 h-5 relative z-10" />
+        <span className="relative z-10">GTA RP</span>
+        <span className={`relative z-10 px-2 py-0.5 rounded-full text-xs font-bold ${
+          active === "gtarp" ? "bg-white/20" : "bg-orange-500/10 text-orange-400"
+        }`}>
+          {gtarpCount}
+        </span>
+      </motion.button>
+    </div>
+  )
+}
+
+// ========================================
+// CARD DE JOGO
+// ========================================
+function GameCard({ 
+  link, 
+  platform,
+  liveData,
+  onEdit,
+  onDelete,
+  onToggleActive
+}: { 
+  link: GameLink
+  platform: Platform
+  liveData?: { playing?: number; players?: number; visits?: number; thumbnail?: string; icon?: string }
+  onEdit: () => void
+  onDelete: () => void
+  onToggleActive: () => void
+}) {
+  const isRoblox = platform === "roblox"
+  const playing = liveData?.playing || liveData?.players || 0
+  
+  // Thumbnail: usa a do banco, ou do lookup, ou placeholder
+  const thumbnail = link.thumbnailUrl || liveData?.thumbnail
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border ${color} bg-card overflow-hidden`}
+      whileHover={{ y: -4 }}
+      className={`relative rounded-2xl overflow-hidden border transition-all duration-300 ${
+        link.active 
+          ? isRoblox 
+            ? "border-red-500/30 hover:border-red-500/50 hover:shadow-[0_0_40px_rgba(239,68,68,0.15)]"
+            : "border-orange-500/30 hover:border-orange-500/50 hover:shadow-[0_0_40px_rgba(249,115,22,0.15)]"
+          : "border-border opacity-60"
+      }`}
     >
-      {/* Header */}
-      <div className={`px-6 py-4 border-b ${color} bg-muted/30`}>
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg ${color.replace('border-', 'bg-').replace('/30', '/20')} flex items-center justify-center`}>
-            <Icon className={`w-5 h-5 ${color.replace('border-', 'text-').replace('/30', '')}`} />
+      {/* Thumbnail */}
+      <div className="relative aspect-video bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
+        {thumbnail ? (
+          <img 
+            src={thumbnail} 
+            alt={link.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className={`w-full h-full flex items-center justify-center ${
+            isRoblox ? "bg-gradient-to-br from-red-500/20 to-red-600/10" : "bg-gradient-to-br from-orange-500/20 to-orange-600/10"
+          }`}>
+            {isRoblox ? (
+              <Gamepad2 className="w-16 h-16 text-red-500/30" />
+            ) : (
+              <Globe className="w-16 h-16 text-orange-500/30" />
+            )}
           </div>
-          <div>
-            <h3 className="font-bold text-foreground">{labels.title}</h3>
-            <p className="text-xs text-muted-foreground">{labels.description}</p>
+        )}
+        
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        
+        {/* Live badge */}
+        {link.active && playing > 0 && (
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/90 text-white text-xs font-semibold shadow-lg">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            {formatNumber(playing)} online
           </div>
-          {hasChanges && (
-            <span className="ml-auto px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-500 text-xs font-medium">
-              Alterado
+        )}
+        
+        {/* Status */}
+        <button
+          onClick={onToggleActive}
+          className={`absolute top-3 right-3 p-2 rounded-lg backdrop-blur-sm transition-all ${
+            link.active 
+              ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" 
+              : "bg-black/50 text-muted-foreground hover:bg-black/70"
+          }`}
+        >
+          {link.active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+        </button>
+        
+        {/* Icon */}
+        {liveData?.icon && (
+          <div className="absolute bottom-3 left-3">
+            <img 
+              src={liveData.icon} 
+              alt=""
+              className={`w-12 h-12 rounded-xl border-2 shadow-lg ${
+                isRoblox ? "border-red-500/50" : "border-orange-500/50"
+              }`}
+            />
+          </div>
+        )}
+        
+        {/* Title */}
+        <div className="absolute bottom-3 left-3 right-3 pl-16">
+          <h3 className="font-bold text-white text-lg truncate drop-shadow-lg">{link.name}</h3>
+          <p className="text-white/70 text-xs font-mono">{link.serverCode}</p>
+        </div>
+      </div>
+      
+      {/* Content */}
+      <div className="p-4 bg-card">
+        {/* Stats */}
+        {liveData && (
+          <div className="flex gap-4 mb-4 text-sm">
+            {liveData.visits !== undefined && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <TrendingUp className="w-4 h-4" />
+                <span>{formatNumber(liveData.visits)}</span>
+              </div>
+            )}
+            {(liveData.playing !== undefined || liveData.players !== undefined) && (
+              <div className="flex items-center gap-1.5 text-green-500">
+                <Users className="w-4 h-4" />
+                <span>{formatNumber(liveData.playing || liveData.players || 0)}</span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Links */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {link.instagram && (
+            <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-pink-500/10 text-pink-400 text-xs">
+              <Instagram className="w-3 h-3" />
+              {link.instagram}
+            </span>
+          )}
+          {link.discordInvite && (
+            <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#5865F2]/10 text-[#5865F2] text-xs">
+              <MessageCircle className="w-3 h-3" />
+              {link.discordInvite}
+            </span>
+          )}
+          {link.videoPath && (
+            <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 text-xs">
+              <Video className="w-3 h-3" />
+              Vídeo
+            </span>
+          )}
+          {link.thumbnailUrl && (
+            <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400 text-xs">
+              <ImageIcon className="w-3 h-3" />
+              Capa
             </span>
           )}
         </div>
-      </div>
-
-      {/* Form */}
-      <div className="p-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Nome */}
-          <div className="space-y-2">
-            <Label htmlFor={`${link.game}-name`} className="text-sm font-medium flex items-center gap-2">
-              <Gamepad2 className="w-4 h-4" />
-              Nome do Jogo
-            </Label>
-            <Input
-              id={`${link.game}-name`}
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              placeholder="Ex: Galorys Tycoon"
-              className="bg-muted/50"
-            />
-          </div>
-
-          {/* Código do Servidor */}
-          <div className="space-y-2">
-            <Label htmlFor={`${link.game}-code`} className="text-sm font-medium flex items-center gap-2">
-              <Link2 className="w-4 h-4" />
-              {isRoblox ? "Game ID (Place ID)" : "Código FiveM"}
-            </Label>
-            <Input
-              id={`${link.game}-code`}
-              value={formData.serverCode}
-              onChange={(e) => handleChange("serverCode", e.target.value)}
-              placeholder={isRoblox ? "Ex: 76149317725679" : "Ex: r4z8dg"}
-              className="bg-muted/50"
-            />
-            <p className="text-xs text-muted-foreground">
-              {isRoblox 
-                ? "⚡ Este é o Place ID do jogo no Roblox. O botão 'Jogar' usará: roblox.com/games/{ID}"
-                : "⚡ Este é o código de acesso ao servidor FiveM. O botão 'Conectar' usará: cfx.re/join/{código}"
-              }
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Instagram */}
-          <div className="space-y-2">
-            <Label htmlFor={`${link.game}-instagram`} className="text-sm font-medium flex items-center gap-2">
-              <Instagram className="w-4 h-4" />
-              Instagram
-            </Label>
-            <Input
-              id={`${link.game}-instagram`}
-              value={formData.instagram}
-              onChange={(e) => handleChange("instagram", e.target.value)}
-              placeholder="Ex: @galorysroblox"
-              className="bg-muted/50"
-            />
-          </div>
-
-          {/* Vídeo */}
-          <div className="space-y-2">
-            <Label htmlFor={`${link.game}-video`} className="text-sm font-medium flex items-center gap-2">
-              <Video className="w-4 h-4" />
-              Caminho do Vídeo
-            </Label>
-            <Input
-              id={`${link.game}-video`}
-              value={formData.videoPath}
-              onChange={(e) => handleChange("videoPath", e.target.value)}
-              placeholder="Ex: /videos/galorys-video.mp4"
-              className="bg-muted/50"
-            />
-          </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end pt-2">
-          <Button
-            onClick={handleSave}
-            disabled={saving || !hasChanges}
-            className={`${color.replace('border-', 'bg-').replace('/30', '')} hover:opacity-90 text-white`}
+        
+        {/* Actions */}
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="flex-1" onClick={onEdit}>
+            <Pencil className="w-4 h-4 mr-2" />
+            Editar
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="text-red-500 hover:bg-red-500/10 hover:border-red-500/50"
+            onClick={onDelete}
           >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Salvar Alterações
-              </>
-            )}
+            <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -210,235 +427,503 @@ function GameLinkCard({
   )
 }
 
-export default function LinksJogosPage() {
-  const [links, setLinks] = useState<GameLink[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState<string | null>(null)
+// ========================================
+// MODAL DE EDIÇÃO
+// ========================================
+function GameModal({
+  isOpen,
+  onClose,
+  link,
+  platform,
+  onSave
+}: {
+  isOpen: boolean
+  onClose: () => void
+  link: GameLink | null
+  platform: Platform
+  onSave: (data: any) => void
+}) {
+  const [formData, setFormData] = useState({
+    game: "",
+    name: "",
+    serverCode: "",
+    serverUrl: "",
+    instagram: "",
+    videoPath: "",
+    discordInvite: "",
+    thumbnailUrl: ""
+  })
+  const [lookupData, setLookupData] = useState<LookupData | null>(null)
+  const [lookupLoading, setLookupLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const { toast } = useToast()
-
-  // Buscar links
-  const fetchLinks = async () => {
+  
+  const isRoblox = platform === "roblox"
+  
+  useEffect(() => {
+    if (link) {
+      setFormData({
+        game: link.game,
+        name: link.name,
+        serverCode: link.serverCode,
+        serverUrl: link.serverUrl || "",
+        instagram: link.instagram || "",
+        videoPath: link.videoPath || "",
+        discordInvite: link.discordInvite || "",
+        thumbnailUrl: link.thumbnailUrl || ""
+      })
+      setLookupData(null)
+    } else {
+      const count = Date.now()
+      setFormData({
+        game: platform === "roblox" ? `roblox-${count}` : `gtarp-${count}`,
+        name: "",
+        serverCode: "",
+        serverUrl: "",
+        instagram: "",
+        videoPath: "",
+        discordInvite: "",
+        thumbnailUrl: ""
+      })
+      setLookupData(null)
+    }
+  }, [link, platform, isOpen])
+  
+  const handleLookup = async () => {
+    if (!formData.serverCode) {
+      toast({ title: "Digite o ID primeiro", variant: "destructive" })
+      return
+    }
+    
+    setLookupLoading(true)
+    setLookupData(null)
+    
     try {
-      setLoading(true)
-      const response = await fetch("/api/game-links")
+      const response = await fetch("/api/admin/game-links/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform: isRoblox ? "roblox" : "fivem",
+          externalId: formData.serverCode
+        })
+      })
+      
       const data = await response.json()
       
-      if (data.success) {
-        setLinks(data.links)
-      } else {
-        toast({
-          title: "Erro",
-          description: data.error || "Falha ao carregar links",
-          variant: "destructive"
-        })
+      if (data.error) {
+        toast({ title: data.error, variant: "destructive" })
+        return
+      }
+      
+      setLookupData(data)
+      setFormData(prev => ({
+        ...prev,
+        name: data.name || prev.name,
+        serverUrl: data.url || prev.serverUrl,
+        thumbnailUrl: data.thumbnail || prev.thumbnailUrl
+      }))
+      
+      toast({ title: "✅ Jogo encontrado!" })
+    } catch (error) {
+      toast({ title: "Erro ao buscar dados", variant: "destructive" })
+    } finally {
+      setLookupLoading(false)
+    }
+  }
+  
+  const handleSave = async () => {
+    if (!formData.name || !formData.serverCode) {
+      toast({ title: "Nome e ID são obrigatórios", variant: "destructive" })
+      return
+    }
+    
+    setSaving(true)
+    try {
+      await onSave(formData)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+  
+  if (!isOpen) return null
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+        onClick={onClose} 
+      />
+      
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="relative w-full max-w-2xl bg-card rounded-2xl border shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+      >
+        {/* Header */}
+        <div className={`px-6 py-4 border-b flex-shrink-0 bg-gradient-to-r ${
+          isRoblox 
+            ? "from-red-500/10 via-red-500/5 to-transparent" 
+            : "from-orange-500/10 via-orange-500/5 to-transparent"
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${
+                isRoblox ? "from-red-500 to-red-600" : "from-orange-500 to-orange-600"
+              }`}>
+                {isRoblox ? <Gamepad2 className="w-5 h-5 text-white" /> : <Globe className="w-5 h-5 text-white" />}
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">{link ? "Editar Jogo" : "Novo Jogo"}</h2>
+                <p className="text-sm text-muted-foreground">{isRoblox ? "Roblox" : "GTA RP (FiveM)"}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Body */}
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
+          {/* Preview do Lookup */}
+          {lookupData?.thumbnail && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl overflow-hidden border border-green-500/30"
+            >
+              <div className="relative aspect-video">
+                <img src={lookupData.thumbnail} alt={lookupData.name} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <h3 className="text-white font-bold text-lg">{lookupData.name}</h3>
+                  <div className="flex gap-4 mt-2 text-white/80 text-sm">
+                    {lookupData.playing !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        {formatNumber(lookupData.playing)} jogando
+                      </span>
+                    )}
+                    {lookupData.visits !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <TrendingUp className="w-4 h-4" />
+                        {formatNumber(lookupData.visits)} visitas
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* ID + Lookup */}
+          <div className="space-y-2">
+            <Label>{isRoblox ? "Universe ID do Jogo" : "Código do Servidor FiveM"}</Label>
+            <div className="flex gap-2">
+              <Input
+                value={formData.serverCode}
+                onChange={(e) => setFormData(prev => ({ ...prev, serverCode: e.target.value }))}
+                placeholder={isRoblox ? "Ex: 4793377607" : "Ex: r4z8dg"}
+                className="font-mono text-lg"
+              />
+              <Button 
+                onClick={handleLookup}
+                disabled={lookupLoading}
+                className={isRoblox ? "bg-red-500 hover:bg-red-600" : "bg-orange-500 hover:bg-orange-600"}
+              >
+                {lookupLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Digite o ID e clique em buscar para preencher automaticamente</p>
+          </div>
+          
+          {/* Nome */}
+          <div className="space-y-2">
+            <Label>Nome do Jogo</Label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder={isRoblox ? "Ex: Aura Evolution" : "Ex: KUSH PVP"}
+              className="text-lg"
+            />
+          </div>
+          
+          {/* Upload de Imagem */}
+          <ImageUpload
+            value={formData.thumbnailUrl || null}
+            onChange={(url) => setFormData(prev => ({ ...prev, thumbnailUrl: url }))}
+            onRemove={() => setFormData(prev => ({ ...prev, thumbnailUrl: "" }))}
+          />
+          
+          {/* Grid de campos */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Instagram className="w-4 h-4 text-pink-500" />
+                Instagram
+              </Label>
+              <Input
+                value={formData.instagram}
+                onChange={(e) => setFormData(prev => ({ ...prev, instagram: e.target.value }))}
+                placeholder="@usuario"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-[#5865F2]" />
+                Discord
+              </Label>
+              <Input
+                value={formData.discordInvite}
+                onChange={(e) => setFormData(prev => ({ ...prev, discordInvite: e.target.value }))}
+                placeholder="Código do convite"
+              />
+            </div>
+            
+            <div className="space-y-2 sm:col-span-2">
+              <Label className="flex items-center gap-2">
+                <Video className="w-4 h-4 text-cyan-500" />
+                Vídeo Promocional
+              </Label>
+              <Input
+                value={formData.videoPath}
+                onChange={(e) => setFormData(prev => ({ ...prev, videoPath: e.target.value }))}
+                placeholder="/videos/meu-video.mp4"
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="px-6 py-4 border-t bg-muted/30 flex justify-end gap-3 flex-shrink-0">
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button 
+            onClick={handleSave}
+            disabled={saving}
+            className={isRoblox 
+              ? "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700" 
+              : "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+            }
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Salvar
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// ========================================
+// PÁGINA PRINCIPAL
+// ========================================
+export default function LinksJogosPage() {
+  const [links, setLinks] = useState<GameLink[]>([])
+  const [liveStats, setLiveStats] = useState<Record<string, any>>({})
+  const [loading, setLoading] = useState(true)
+  const [platform, setPlatform] = useState<Platform>("roblox")
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingLink, setEditingLink] = useState<GameLink | null>(null)
+  const { toast } = useToast()
+  
+  const fetchLinks = async () => {
+    try {
+      const response = await fetch("/api/admin/game-links")
+      if (response.ok) {
+        const data = await response.json()
+        setLinks(data)
       }
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao conectar com o servidor",
-        variant: "destructive"
-      })
+      toast({ title: "Erro ao carregar jogos", variant: "destructive" })
     } finally {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    fetchLinks()
-  }, [])
-
-  // Salvar link
-  const handleSave = async (data: Partial<GameLink>) => {
-    if (!data.game) return
-
+  
+  const fetchLiveStats = async () => {
     try {
-      setSaving(data.game)
-      
-      const response = await fetch("/api/game-links", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        // Invalidar cache das APIs para refletir mudanças imediatamente
-        try {
-          if (data.game?.startsWith("gtarp")) {
-            await fetch("/api/fivem?refresh=true")
+      const response = await fetch("/api/games-stats")
+      if (response.ok) {
+        const data = await response.json()
+        const stats: Record<string, any> = {}
+        
+        data.roblox?.games?.forEach((game: any) => {
+          const link = links.find(l => l.serverCode === game.universeId)
+          if (link) {
+            stats[link.id] = { playing: game.playing, visits: game.visits, thumbnail: game.thumbnail, icon: game.icon }
           }
-          if (data.game?.startsWith("roblox")) {
-            await fetch("/api/roblox?refresh=true")
+        })
+        
+        data.fivem?.servers?.forEach((server: any) => {
+          const link = links.find(l => l.serverCode === server.code)
+          if (link) {
+            stats[link.id] = { players: server.players, maxPlayers: server.maxPlayers }
           }
-        } catch (cacheError) {
-          console.log("Cache refresh attempted")
-        }
-
-        toast({
-          title: "Sucesso!",
-          description: "Link atualizado com sucesso",
         })
-        // Atualizar lista local
-        setLinks(prev => prev.map(link => 
-          link.game === data.game ? { ...link, ...data } : link
-        ))
-      } else {
-        toast({
-          title: "Erro",
-          description: result.error || "Falha ao salvar",
-          variant: "destructive"
-        })
+        
+        setLiveStats(stats)
       }
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao conectar com o servidor",
-        variant: "destructive"
+      console.error("Erro ao buscar stats:", error)
+    }
+  }
+  
+  useEffect(() => { fetchLinks() }, [])
+  
+  useEffect(() => {
+    if (links.length > 0) {
+      fetchLiveStats()
+      const interval = setInterval(fetchLiveStats, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [links])
+  
+  const robloxLinks = links.filter(l => l.game.startsWith("roblox") && l.game !== "roblox-group")
+  const gtarpLinks = links.filter(l => l.game.startsWith("gtarp"))
+  const currentLinks = platform === "roblox" ? robloxLinks : gtarpLinks
+  
+  const handleAdd = () => { setEditingLink(null); setModalOpen(true) }
+  const handleEdit = (link: GameLink) => { setEditingLink(link); setModalOpen(true) }
+  
+  const handleSave = async (data: any) => {
+    try {
+      if (editingLink) {
+        const response = await fetch(`/api/admin/game-links/${editingLink.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        })
+        if (!response.ok) throw new Error()
+        toast({ title: "✅ Jogo atualizado!" })
+      } else {
+        const response = await fetch("/api/admin/game-links", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        })
+        if (!response.ok) {
+          const err = await response.json()
+          throw new Error(err.error)
+        }
+        toast({ title: "✅ Jogo adicionado!" })
+      }
+      fetchLinks()
+    } catch (error: any) {
+      toast({ title: error.message || "Erro ao salvar", variant: "destructive" })
+    }
+  }
+  
+  const handleDelete = async (link: GameLink) => {
+    if (!confirm(`Excluir "${link.name}"?`)) return
+    try {
+      await fetch(`/api/admin/game-links/${link.id}`, { method: "DELETE" })
+      toast({ title: "Jogo excluído!" })
+      fetchLinks()
+    } catch {
+      toast({ title: "Erro ao excluir", variant: "destructive" })
+    }
+  }
+  
+  const handleToggleActive = async (link: GameLink) => {
+    try {
+      await fetch(`/api/admin/game-links/${link.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: !link.active })
       })
-    } finally {
-      setSaving(null)
+      toast({ title: link.active ? "Jogo desativado" : "Jogo ativado" })
+      fetchLinks()
+    } catch {
+      toast({ title: "Erro ao atualizar", variant: "destructive" })
     }
   }
-
-  // Ordenar links: roblox primeiro, depois roblox-2, depois gtarp
-  const sortedLinks = [...links].sort((a, b) => {
-    const order: Record<string, number> = { 
-      "roblox": 0, 
-      "roblox-2": 1, 
-      "gtarp-kush": 2, 
-      "gtarp-flow": 3 
-    }
-    return (order[a.game] ?? 99) - (order[b.game] ?? 99)
-  })
-
-  const getColor = (game: string) => {
-    switch (game) {
-      case "roblox": return "border-red-500/30"
-      case "roblox-2": return "border-red-400/30"
-      case "gtarp-kush": return "border-orange-500/30"
-      case "gtarp-flow": return "border-green-500/30"
-      default: return "border-border"
-    }
-  }
-
-  const getIcon = (game: string) => {
-    switch (game) {
-      case "roblox": return Gamepad2
-      case "roblox-2": return Gamepad2
-      case "gtarp-kush": return Globe
-      case "gtarp-flow": return Globe
-      default: return Link2
-    }
-  }
-
+  
   return (
-    <div className="space-y-6">
+    <div className="p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Gamepad2 className="w-6 h-6 text-primary" />
-            Links dos Jogos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Gerencie os links de acesso aos jogos Roblox e GTA RP
-          </p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Links dos Jogos</h1>
+          <p className="text-muted-foreground mt-1">Gerencie os jogos Roblox e servidores GTA RP</p>
         </div>
+        
         <Button 
-          variant="outline" 
-          onClick={fetchLinks}
-          disabled={loading}
+          onClick={handleAdd}
+          size="lg"
+          className={`shadow-lg ${
+            platform === "roblox"
+              ? "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+              : "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+          }`}
         >
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar
+          <Plus className="w-5 h-5 mr-2" />
+          Adicionar Jogo
         </Button>
       </div>
-
-      {/* Avisos */}
-      <div className="space-y-3">
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-          <Gamepad2 className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium text-red-500">Roblox - 2 Jogos Configurados</p>
-            <p className="text-muted-foreground">
-              Os IDs dos jogos Roblox são automaticamente buscados na API do Roblox para exibir estatísticas em tempo real.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-          <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium text-yellow-500">Atenção - GTA RP</p>
-            <p className="text-muted-foreground">
-              Os links dos jogos de GTA RP mudam periodicamente. Atualize quando necessário para manter o acesso dos jogadores.
-            </p>
-          </div>
-        </div>
+      
+      {/* Tabs */}
+      <div className="mb-8">
+        <PlatformTabs 
+          active={platform} 
+          onChange={setPlatform}
+          robloxCount={robloxLinks.length}
+          gtarpCount={gtarpLinks.length}
+        />
       </div>
-
-      {/* Loading */}
+      
+      {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        /* Cards */
-        <div className="space-y-6">
-          {/* Seção Roblox */}
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-500" />
-              Roblox
-            </h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {sortedLinks
-                .filter(link => link.game.startsWith("roblox"))
-                .map((link) => (
-                  <GameLinkCard
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={platform}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            {currentLinks.length === 0 ? (
+              <div className="text-center py-20">
+                <div className={`w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center ${
+                  platform === "roblox" ? "bg-red-500/10" : "bg-orange-500/10"
+                }`}>
+                  {platform === "roblox" ? <Gamepad2 className="w-10 h-10 text-red-500" /> : <Globe className="w-10 h-10 text-orange-500" />}
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Nenhum jogo cadastrado</h3>
+                <p className="text-muted-foreground mb-6">Clique em "Adicionar Jogo" para começar</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {currentLinks.map((link) => (
+                  <GameCard
                     key={link.id}
                     link={link}
-                    onSave={handleSave}
-                    saving={saving === link.game}
-                    color={getColor(link.game)}
-                    icon={getIcon(link.game)}
+                    platform={platform}
+                    liveData={liveStats[link.id]}
+                    onEdit={() => handleEdit(link)}
+                    onDelete={() => handleDelete(link)}
+                    onToggleActive={() => handleToggleActive(link)}
                   />
                 ))}
-            </div>
-          </div>
-
-          {/* Seção GTA RP */}
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-orange-500" />
-              GTA RP
-            </h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {sortedLinks
-                .filter(link => link.game.startsWith("gtarp"))
-                .map((link) => (
-                  <GameLinkCard
-                    key={link.id}
-                    link={link}
-                    onSave={handleSave}
-                    saving={saving === link.game}
-                    color={getColor(link.game)}
-                    icon={getIcon(link.game)}
-                  />
-                ))}
-            </div>
-          </div>
-
-          {sortedLinks.length === 0 && (
-            <div className="text-center py-20 text-muted-foreground">
-              <Gamepad2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum link configurado</p>
-              <p className="text-sm">Os links serão criados automaticamente ao acessar as APIs</p>
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       )}
+      
+      <GameModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        link={editingLink}
+        platform={platform}
+        onSave={handleSave}
+      />
     </div>
   )
 }

@@ -1,0 +1,22 @@
+// Este arquivo contém APENAS o model GameLink atualizado
+// Cole este model no seu schema.prisma SUBSTITUINDO o model GameLink existente
+
+model GameLink {
+  id            String   @id @default(cuid())
+  game          String   @unique  // "roblox", "roblox-2", "gtarp-kush", "gtarp-flow"
+  name          String            // Nome amigável
+  serverCode    String            // ID do jogo Roblox ou código do servidor FiveM
+  serverUrl     String?           // URL completa de acesso
+  instagram     String?           // Handle do Instagram
+  videoPath     String?           // Caminho do vídeo
+  discordInvite String?           // Código do convite Discord
+  thumbnailUrl  String?           // URL da imagem de capa (novo campo)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Após colar, execute:
+// npx prisma db push
+// ou
+// npx prisma migrate dev --name add-thumbnail-to-gamelink

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react"
 import { motion, useInView } from "framer-motion"
 import Link from "next/link"
-import { Trophy, Medal, Target, Crown, ArrowRight, Calendar, Loader2 } from "lucide-react"
+import { Trophy, Medal, Target, Crown, ArrowRight, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
 
 // Interface para conquistas do banco
 interface AchievementDB {
@@ -154,6 +154,235 @@ function convertDBToUI(dbAchievements: AchievementDB[]) {
   })
 }
 
+// ========================================
+// GRID MOBILE - STATS (2x2 com efeitos premium)
+// ========================================
+function MobileStatsGrid({ 
+  statsData, 
+  inView 
+}: { 
+  statsData: typeof stats
+  inView: boolean 
+}) {
+  // Cores gradientes para cada card
+  const gradients = [
+    "from-galorys-purple to-violet-600",
+    "from-galorys-pink to-rose-600", 
+    "from-cyan-500 to-blue-600",
+    "from-amber-500 to-orange-600"
+  ]
+
+  // Ícones para cada stat
+  const icons = [
+    <Trophy key="trophy" className="w-5 h-5" />,
+    <Crown key="crown" className="w-5 h-5" />,
+    <Target key="target" className="w-5 h-5" />,
+    <Calendar key="calendar" className="w-5 h-5" />
+  ]
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {statsData.map((stat, index) => (
+        <motion.div
+          key={stat.label}
+          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+          transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
+          className="relative group"
+        >
+          {/* Glow effect */}
+          <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradients[index]} rounded-2xl blur opacity-0 group-hover:opacity-30 transition-opacity duration-500`} />
+          
+          {/* Card */}
+          <div className="relative h-full overflow-hidden rounded-2xl bg-gradient-to-br from-galorys-surface/90 to-galorys-surface/50 border border-border/50 backdrop-blur-xl transition-all duration-300 group-hover:border-galorys-purple/40 group-hover:shadow-[0_8px_32px_rgba(168,85,247,0.15)]">
+            {/* Background gradient overlay */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${gradients[index]} opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-500`} />
+            
+            {/* Decorative corner glow */}
+            <div className={`absolute -top-8 -right-8 w-20 h-20 bg-gradient-to-br ${gradients[index]} rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500`} />
+            
+            {/* Content */}
+            <div className="relative p-4 flex flex-col items-center justify-center min-h-[110px]">
+              {/* Icon */}
+              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradients[index]} flex items-center justify-center mb-2 shadow-lg text-white transform group-hover:scale-110 transition-transform duration-300`}>
+                {icons[index]}
+              </div>
+              
+              {/* Value */}
+              <div className="text-2xl sm:text-3xl font-bold text-foreground mb-0.5">
+                <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+              </div>
+              
+              {/* Label */}
+              <div className="text-[10px] sm:text-xs text-muted-foreground text-center leading-tight">
+                {stat.label}
+              </div>
+            </div>
+            
+            {/* Bottom shine effect */}
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-galorys-purple/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  )
+}
+
+// ========================================
+// CARROSSEL MOBILE - CONQUISTAS
+// ========================================
+function MobileAchievementsCarousel({ 
+  achievements 
+}: { 
+  achievements: typeof fallbackAchievements 
+}) {
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(true)
+
+  const checkScroll = () => {
+    if (carouselRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current
+      setCanScrollLeft(scrollLeft > 10)
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
+      
+      const cardWidth = clientWidth * 0.85
+      const newIndex = Math.round(scrollLeft / cardWidth)
+      setCurrentIndex(Math.min(newIndex, achievements.length - 1))
+    }
+  }
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const cardWidth = carouselRef.current.offsetWidth * 0.85
+      const scrollAmount = direction === 'left' ? -cardWidth : cardWidth
+      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    }
+  }
+
+  const scrollToIndex = (index: number) => {
+    if (carouselRef.current) {
+      const cardWidth = carouselRef.current.offsetWidth * 0.85
+      carouselRef.current.scrollTo({ left: index * cardWidth, behavior: 'smooth' })
+    }
+  }
+
+  useEffect(() => {
+    const carousel = carouselRef.current
+    if (carousel) {
+      carousel.addEventListener('scroll', checkScroll)
+      checkScroll()
+      return () => carousel.removeEventListener('scroll', checkScroll)
+    }
+  }, [achievements.length])
+
+  return (
+    <div className="relative -mx-4 px-4">
+      {/* Carousel */}
+      <div
+        ref={carouselRef}
+        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-6"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {achievements.map((achievement, index) => (
+          <motion.div
+            key={achievement.id}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: index * 0.1 }}
+            className="flex-shrink-0 w-[85%] snap-center"
+          >
+            <div className="group relative overflow-hidden rounded-2xl glass border border-border p-5 hover:border-galorys-purple/30 transition-all h-full min-h-[180px]">
+              {/* Gradient glow */}
+              <div className={`absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br ${achievement.color} opacity-20 rounded-full blur-2xl`} />
+              
+              {/* Icon & Badge Row */}
+              <div className="flex items-start justify-between mb-4 relative z-10">
+                <div
+                  className={`flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${achievement.color} shadow-lg`}
+                >
+                  <achievement.icon className="w-6 h-6 text-white" />
+                </div>
+                <span
+                  className={`px-3 py-1.5 rounded-full bg-gradient-to-r ${achievement.color} text-white text-xs font-bold shadow-md`}
+                >
+                  {achievement.placement}
+                </span>
+              </div>
+
+              {/* Content */}
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-galorys-purple transition-colors line-clamp-2">
+                  {achievement.title}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{achievement.tournament}</p>
+
+                {/* Meta */}
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" />
+                    {achievement.date}
+                  </span>
+                  <span className="text-galorys-purple font-medium">{achievement.team}</span>
+                </div>
+              </div>
+
+              {/* Hover glow */}
+              <div
+                className={`absolute inset-0 bg-gradient-to-br ${achievement.color} opacity-0 group-hover:opacity-5 transition-opacity pointer-events-none`}
+              />
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-center gap-4 mt-2">
+        <button
+          onClick={() => scroll('left')}
+          disabled={!canScrollLeft}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            canScrollLeft
+              ? 'bg-galorys-pink/20 text-galorys-pink active:bg-galorys-pink active:text-white'
+              : 'bg-muted/20 text-muted-foreground/30 cursor-not-allowed'
+          }`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        
+        {/* Dots */}
+        <div className="flex items-center gap-2">
+          {achievements.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => scrollToIndex(index)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentIndex
+                  ? 'bg-galorys-pink w-5'
+                  : 'bg-muted-foreground/30 w-2'
+              }`}
+            />
+          ))}
+        </div>
+        
+        <button
+          onClick={() => scroll('right')}
+          disabled={!canScrollRight}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            canScrollRight
+              ? 'bg-galorys-pink/20 text-galorys-pink active:bg-galorys-pink active:text-white'
+              : 'bg-muted/20 text-muted-foreground/30 cursor-not-allowed'
+          }`}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function AchievementsSection() {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: "-100px" })
@@ -226,12 +455,22 @@ export function AchievementsSection() {
           </p>
         </motion.div>
 
-        {/* Stats counters */}
+        {/* ========================================
+            MOBILE/TABLET: Stats Carrossel (< md)
+            ======================================== */}
+        <div className="md:hidden mb-10">
+          <MobileStatsGrid statsData={statsData} inView={inView} />
+        </div>
+
+        {/* ========================================
+            DESKTOP: Stats Grid (>= md)
+            100% IGUAL AO ORIGINAL
+            ======================================== */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-10 md:mb-16"
+          className="hidden md:grid md:grid-cols-4 gap-4 md:gap-6 mb-10 md:mb-16"
         >
           {statsData.map((stat, index) => (
             <motion.div
@@ -252,10 +491,20 @@ export function AchievementsSection() {
           ))}
         </motion.div>
 
-        {/* Timeline de conquistas */}
-        <div className="relative">
+        {/* ========================================
+            MOBILE/TABLET: Conquistas Carrossel (< md)
+            ======================================== */}
+        <div className="md:hidden">
+          <MobileAchievementsCarousel achievements={achievements} />
+        </div>
+
+        {/* ========================================
+            DESKTOP: Timeline Original (>= md)
+            100% IGUAL AO ORIGINAL
+            ======================================== */}
+        <div className="hidden md:block relative">
           {/* Linha central */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-galorys-purple via-galorys-pink to-cyan-500 hidden md:block" />
+          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-galorys-purple via-galorys-pink to-cyan-500" />
 
           <div className="space-y-6 md:space-y-8">
             {achievements.map((achievement, index) => (

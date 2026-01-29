@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { motion, useMotionValue, useSpring } from "framer-motion"
 import Link from "next/link"
 import { 
   Gamepad2, Users, Eye, Play, ExternalLink, Loader2, 
-  TrendingUp, ArrowRight, Heart, Crown, Target
+  TrendingUp, ArrowRight, Heart, Crown, Target, ChevronLeft, ChevronRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -211,6 +211,224 @@ function StatCard({
         <p className="text-xs sm:text-sm text-muted-foreground font-medium">{label}</p>
       </div>
     </motion.div>
+  )
+}
+
+// ============================================
+// MOBILE GAMES CAROUSEL (< lg = 1024px)
+// Carrossel premium para jogos Roblox
+// ============================================
+
+function MobileGamesCarousel({ games }: { games: RobloxGame[] }) {
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(true)
+
+  const checkScroll = () => {
+    if (carouselRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current
+      setCanScrollLeft(scrollLeft > 10)
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
+      
+      const cardWidth = clientWidth * 0.88
+      const newIndex = Math.round(scrollLeft / cardWidth)
+      setCurrentIndex(Math.min(newIndex, games.length - 1))
+    }
+  }
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const cardWidth = carouselRef.current.offsetWidth * 0.88
+      const scrollAmount = direction === 'left' ? -cardWidth : cardWidth
+      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    }
+  }
+
+  const scrollToIndex = (index: number) => {
+    if (carouselRef.current) {
+      const cardWidth = carouselRef.current.offsetWidth * 0.88
+      carouselRef.current.scrollTo({ left: index * cardWidth, behavior: 'smooth' })
+    }
+  }
+
+  useEffect(() => {
+    const carousel = carouselRef.current
+    if (carousel) {
+      carousel.addEventListener('scroll', checkScroll)
+      checkScroll()
+      return () => carousel.removeEventListener('scroll', checkScroll)
+    }
+  }, [games.length])
+
+  return (
+    <div className="relative -mx-4 px-4">
+      {/* Carousel */}
+      <div
+        ref={carouselRef}
+        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-6"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {games.map((game, index) => (
+          <motion.div
+            key={game.id}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.1, duration: 0.4 }}
+            className="flex-shrink-0 w-[88%] sm:w-[80%] snap-center"
+          >
+            <MobileGameCard game={game} index={index} />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-center gap-4 mt-2">
+        <button
+          onClick={() => scroll('left')}
+          disabled={!canScrollLeft}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            canScrollLeft
+              ? 'bg-red-500/20 text-red-500 active:bg-red-500 active:text-white'
+              : 'bg-muted/20 text-muted-foreground/30 cursor-not-allowed'
+          }`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        
+        {/* Dots */}
+        <div className="flex items-center gap-2">
+          {games.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => scrollToIndex(index)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentIndex
+                  ? 'bg-red-500 w-6'
+                  : 'bg-muted-foreground/30 w-2 hover:bg-muted-foreground/50'
+              }`}
+            />
+          ))}
+        </div>
+        
+        <button
+          onClick={() => scroll('right')}
+          disabled={!canScrollRight}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            canScrollRight
+              ? 'bg-red-500/20 text-red-500 active:bg-red-500 active:text-white'
+              : 'bg-muted/20 text-muted-foreground/30 cursor-not-allowed'
+          }`}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ============================================
+// MOBILE GAME CARD - Card compacto para carrossel
+// ============================================
+
+function MobileGameCard({ game, index }: { game: RobloxGame; index: number }) {
+  return (
+    <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-galorys-surface/90 to-galorys-surface/50 border border-red-500/20 backdrop-blur-xl transition-all duration-300 hover:border-red-500/50 hover:shadow-[0_10px_40px_rgba(255,77,77,0.2)]">
+      {/* Thumbnail */}
+      <div className="relative aspect-[16/10] overflow-hidden">
+        {game.thumbnail ? (
+          <img 
+            src={game.thumbnail} 
+            alt={game.name}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-red-900/20 flex items-center justify-center">
+            <Gamepad2 className="w-16 h-16 text-red-500/50" />
+          </div>
+        )}
+        
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-galorys-base via-galorys-base/50 to-transparent" />
+        
+        {/* Play button */}
+        <a 
+          href={game.url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-[0_0_30px_rgba(255,77,77,0.5)] transition-transform duration-300 group-hover:scale-110">
+            <Play className="w-7 h-7 text-white ml-1" />
+          </div>
+        </a>
+
+        {/* Live badge */}
+        {game.playing > 0 && (
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/90 backdrop-blur-sm text-white text-xs font-bold shadow-lg">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            {formatNumber(game.playing)} ONLINE
+          </div>
+        )}
+
+        {/* Genre badge */}
+        {game.genre && (
+          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-purple-500/80 backdrop-blur-sm text-white text-xs font-medium">
+            {game.genre}
+          </div>
+        )}
+
+        {/* Icon */}
+        {game.icon && (
+          <div className="absolute -bottom-6 left-4">
+            <div className="absolute inset-0 bg-red-500/50 rounded-xl blur-xl" />
+            <img 
+              src={game.icon} 
+              alt={game.name}
+              className="relative w-14 h-14 rounded-xl border-4 border-galorys-surface shadow-2xl"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-4 pt-8">
+        <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-1">
+          {game.name}
+        </h3>
+        {game.description && (
+          <p className="text-muted-foreground text-xs mb-3 line-clamp-2">
+            {game.description}
+          </p>
+        )}
+        
+        {/* Stats */}
+        <div className="flex flex-wrap gap-3 mb-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Eye className="w-3.5 h-3.5 text-red-400" />
+            <span>{formatNumber(game.visits)}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Heart className="w-3.5 h-3.5 text-pink-400" />
+            <span>{formatNumber(game.favoritedCount)}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Users className="w-3.5 h-3.5 text-blue-400" />
+            <span>Até {game.maxPlayers}</span>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <a href={game.url} target="_blank" rel="noopener noreferrer" className="block">
+          <Button 
+            className="w-full h-11 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl shadow-[0_4px_20px_rgba(255,77,77,0.4)] transition-all duration-300"
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Jogar Agora
+          </Button>
+        </a>
+      </div>
+    </div>
   )
 }
 
@@ -488,10 +706,51 @@ export function RobloxPageContent() {
     async function fetchRobloxData() {
       try {
         setLoading(true)
-        const response = await fetch("/api/roblox")
+        // Usar API unificada (mesma do live-counter)
+        const response = await fetch("/api/games-stats")
         if (!response.ok) throw new Error("Falha ao carregar")
         const data = await response.json()
-        setRobloxData(data)
+        
+        // Adaptar dados para o formato esperado
+        if (data.roblox) {
+          const games = data.roblox.games || []
+          const totalPlaying = games.reduce((acc: number, g: any) => acc + (g.playing || 0), 0)
+          const totalVisits = games.reduce((acc: number, g: any) => acc + (g.visits || 0), 0)
+          const totalFavorites = games.reduce((acc: number, g: any) => acc + (g.favorites || g.favoritedCount || 0), 0)
+          
+          setRobloxData({
+            group: data.roblox.group ? {
+              id: parseInt(data.roblox.group.id) || 0,
+              name: data.roblox.group.name || "Galorys",
+              description: "",
+              memberCount: data.roblox.group.memberCount || 0,
+              icon: data.roblox.group.icon,
+              url: `https://www.roblox.com/groups/${data.roblox.group.id}`
+            } : {
+              id: 0,
+              name: "Galorys",
+              description: "",
+              memberCount: 0,
+              icon: null,
+              url: ""
+            },
+            games: games.map((g: any) => ({
+              ...g,
+              universeId: parseInt(g.universeId) || 0,
+              favoritedCount: g.favorites || g.favoritedCount || 0,
+              maxPlayers: g.maxPlayers || 0,
+              created: g.created || "",
+              updated: g.updated || ""
+            })),
+            totals: {
+              playing: totalPlaying,
+              visits: totalVisits,
+              favorites: totalFavorites,
+              gamesCount: games.length
+            },
+            fetchedAt: data.fetchedAt || new Date().toISOString()
+          })
+        }
       } catch (err) {
         setError("Não foi possível carregar os dados do Roblox")
         console.error(err)
@@ -500,7 +759,12 @@ export function RobloxPageContent() {
       }
     }
 
+    // Buscar imediatamente
     fetchRobloxData()
+    
+    // Atualizar a cada 30 segundos (igual ao live-counter)
+    const interval = setInterval(fetchRobloxData, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const group = robloxData?.group
@@ -647,8 +911,18 @@ export function RobloxPageContent() {
                 </div>
               </div>
               
-              {/* Grid com altura uniforme */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+              {/* ========================================
+                  MOBILE/TABLET: Carrossel (< lg = 1024px)
+                  ======================================== */}
+              <div className="lg:hidden">
+                <MobileGamesCarousel games={games} />
+              </div>
+
+              {/* ========================================
+                  DESKTOP: Grid Original (>= lg = 1024px)
+                  100% IGUAL AO ORIGINAL
+                  ======================================== */}
+              <div className="hidden lg:grid lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
                 {games.map((game, index) => (
                   <GameCard key={game.id} game={game} index={index} />
                 ))}

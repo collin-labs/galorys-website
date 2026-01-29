@@ -433,10 +433,11 @@ function GtaRpContent({
 
   const totalPlayers = fivemData?.totalPlayers || 0
   const servers = fivemData?.servers || []
-  const kushServer = servers.find(s => s.code === "r4z8dg" || s.name?.includes("KUSH"))
-  const flowServer = servers.find(s => s.code === "3emg7o" || s.name?.includes("Flow"))
+  // Pega os 2 primeiros servidores cadastrados (em vez de códigos hardcoded)
+  const kushServer = servers[0]
+  const flowServer = servers[1]
   
-  // URLs dinâmicas do banco
+  // URLs dinâmicas do banco (com fallbacks originais para não quebrar layout)
   const kushConnectUrl = kushServer?.connectUrl || "https://cfx.re/join/r4z8dg"
   const kushInstagram = kushServer?.instagram || "@joguekush"
   const flowConnectUrl = flowServer?.connectUrl || "https://cfx.re/join/3emg7o"
@@ -444,8 +445,8 @@ function GtaRpContent({
 
   const stats = [
     { icon: Users, value: totalPlayers, label: "Jogadores Online", live: true },
-    { icon: Gamepad2, value: kushServer?.players || 0, label: "KUSH PVP" },
-    { icon: Globe, value: flowServer?.players || 0, label: "Flow RP" },
+    { icon: Gamepad2, value: kushServer?.players || 0, label: kushServer?.name || "KUSH PVP" },
+    { icon: Globe, value: flowServer?.players || 0, label: flowServer?.name || "Flow RP" },
   ]
 
   return (
@@ -643,40 +644,80 @@ export function GamesSection() {
   const [loadingRoblox, setLoadingRoblox] = useState(true)
   const [loadingFivem, setLoadingFivem] = useState(true)
 
-  // Buscar dados do Roblox
+  // Buscar dados da API UNIFICADA (mesma do live-counter)
   useEffect(() => {
-    async function fetchRobloxData() {
+    async function fetchGamesData() {
       try {
         setLoadingRoblox(true)
-        const response = await fetch("/api/roblox")
+        setLoadingFivem(true)
+        
+        const response = await fetch("/api/games-stats")
         if (!response.ok) throw new Error("Falha ao carregar")
         const data = await response.json()
-        setRobloxData(data)
+        
+        // Adaptar dados do Roblox
+        if (data.roblox) {
+          const totalPlaying = data.roblox.games?.reduce((acc: number, g: any) => acc + (g.playing || 0), 0) || 0
+          const totalVisits = data.roblox.games?.reduce((acc: number, g: any) => acc + (g.visits || 0), 0) || 0
+          const totalFavorites = data.roblox.games?.reduce((acc: number, g: any) => acc + (g.favorites || g.favoritedCount || 0), 0) || 0
+          
+          setRobloxData({
+            group: data.roblox.group ? {
+              id: parseInt(data.roblox.group.id) || 0,
+              name: data.roblox.group.name || "Galorys",
+              description: "",
+              memberCount: data.roblox.group.memberCount || 0,
+              icon: data.roblox.group.icon,
+              url: `https://www.roblox.com/groups/${data.roblox.group.id}`
+            } : {
+              id: 0,
+              name: "Galorys",
+              description: "",
+              memberCount: 0,
+              icon: null,
+              url: ""
+            },
+            games: data.roblox.games || [],
+            totals: {
+              playing: totalPlaying,
+              visits: totalVisits,
+              favorites: totalFavorites,
+              gamesCount: data.roblox.games?.length || 0
+            }
+          })
+        }
+        
+        // Adaptar dados do FiveM
+        if (data.fivem) {
+          setFivemData({
+            servers: (data.fivem.servers || []).map((s: any) => ({
+              code: s.code,
+              name: s.name,
+              players: s.players,
+              maxPlayers: s.maxPlayers || 0,
+              online: s.online || s.players > 0,
+              connectUrl: s.url || `https://cfx.re/join/${s.code}`,
+              instagram: s.instagram || null,
+              videoPath: s.video || null,
+              discordInvite: s.discord || null
+            })),
+            totalPlayers: data.fivem.totalPlayers || 0
+          })
+        }
       } catch (err) {
-        console.error("Erro Roblox:", err)
+        console.error("Erro ao buscar games-stats:", err)
       } finally {
         setLoadingRoblox(false)
-      }
-    }
-    fetchRobloxData()
-  }, [])
-
-  // Buscar dados do FiveM
-  useEffect(() => {
-    async function fetchFivemData() {
-      try {
-        setLoadingFivem(true)
-        const response = await fetch("/api/fivem")
-        if (!response.ok) throw new Error("Falha ao carregar")
-        const data = await response.json()
-        setFivemData(data)
-      } catch (err) {
-        console.error("Erro FiveM:", err)
-      } finally {
         setLoadingFivem(false)
       }
     }
-    fetchFivemData()
+    
+    // Buscar imediatamente
+    fetchGamesData()
+    
+    // Atualizar a cada 30 segundos (igual ao live-counter)
+    const interval = setInterval(fetchGamesData, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const accentColor = activeTab === "roblox" ? "rgba(255,77,77,0.1)" : "rgba(249,115,22,0.1)"

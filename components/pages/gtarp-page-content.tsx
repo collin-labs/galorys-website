@@ -8,7 +8,7 @@ import {
   Globe, Users, Play, Pause, Volume2, VolumeX, 
   ExternalLink, Loader2, ArrowRight, Instagram,
   Gamepad2, Crown, MessageCircle,
-  Sparkles, Zap, Shield, Star, ChevronRight,
+  Sparkles, Zap, Shield, Star, ChevronRight, ChevronLeft,
   UserCheck, Radio
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -250,6 +250,125 @@ function VideoPlayer({
 }
 
 // ============================================
+// MOBILE SERVERS CAROUSEL (< lg = 1024px)
+// Carrossel premium com cards completos
+// ============================================
+
+function MobileServersCarousel({
+  kushServer,
+  flowServer,
+  kushDiscord,
+  flowDiscord,
+  fivemLoading,
+  discordLoading
+}: {
+  kushServer: FivemServer | undefined
+  flowServer: FivemServer | undefined
+  kushDiscord: DiscordCommunity | undefined
+  flowDiscord: DiscordCommunity | undefined
+  fivemLoading: boolean
+  discordLoading: boolean
+}) {
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  const servers = [
+    { server: kushServer, discord: kushDiscord, isVertical: true },
+    { server: flowServer, discord: flowDiscord, isVertical: false }
+  ]
+
+  const checkScroll = () => {
+    if (carouselRef.current) {
+      const { scrollLeft, clientWidth } = carouselRef.current
+      const cardWidth = clientWidth * 0.92
+      const newIndex = Math.round(scrollLeft / cardWidth)
+      setCurrentIndex(Math.min(newIndex, servers.length - 1))
+    }
+  }
+
+  const scrollToIndex = (index: number) => {
+    if (carouselRef.current) {
+      const cardWidth = carouselRef.current.offsetWidth * 0.92
+      carouselRef.current.scrollTo({ left: index * cardWidth, behavior: 'smooth' })
+    }
+  }
+
+  useEffect(() => {
+    const carousel = carouselRef.current
+    if (carousel) {
+      carousel.addEventListener('scroll', checkScroll)
+      return () => carousel.removeEventListener('scroll', checkScroll)
+    }
+  }, [])
+
+  return (
+    <div className="relative -mx-4 px-4">
+      {/* Carousel */}
+      <div
+        ref={carouselRef}
+        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-6"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {servers.map((item, index) => (
+          <div
+            key={index}
+            className="flex-shrink-0 w-[92%] snap-center"
+          >
+            <ServerCard
+              server={item.server}
+              discord={item.discord}
+              isVertical={item.isVertical}
+              loading={fivemLoading}
+              discordLoading={discordLoading}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-center gap-4 mt-4">
+        <button
+          onClick={() => scrollToIndex(0)}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            currentIndex === 0
+              ? 'bg-orange-500/30 text-orange-500'
+              : 'bg-muted/20 text-muted-foreground active:bg-orange-500/20'
+          }`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        
+        {/* Dots */}
+        <div className="flex items-center gap-3">
+          {servers.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => scrollToIndex(index)}
+              className={`h-2.5 rounded-full transition-all duration-300 ${
+                index === currentIndex
+                  ? 'bg-orange-500 w-8'
+                  : 'bg-muted-foreground/30 w-2.5 hover:bg-muted-foreground/50'
+              }`}
+            />
+          ))}
+        </div>
+        
+        <button
+          onClick={() => scrollToIndex(1)}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            currentIndex === 1
+              ? 'bg-orange-500/30 text-orange-500'
+              : 'bg-muted/20 text-muted-foreground active:bg-orange-500/20'
+          }`}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ============================================
 // SERVER CARD COMPONENT (Reformulado)
 // ============================================
 
@@ -291,36 +410,36 @@ function ServerCard({
         <div className="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/5 group-hover:to-orange-600/5 transition-all duration-500 pointer-events-none" />
         
         {/* Header */}
-        <div className="relative p-5 md:p-6 border-b border-border/50 dark:border-white/10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="relative p-4 sm:p-5 md:p-6 border-b border-border/50 dark:border-white/10">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               {/* Icon */}
               <motion.div 
                 whileHover={{ rotate: 10, scale: 1.05 }}
-                className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/25"
+                className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/25 flex-shrink-0"
               >
                 {isVertical ? (
-                  <Crown className="w-7 h-7 text-white" />
+                  <Crown className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
                 ) : (
-                  <Globe className="w-7 h-7 text-white" />
+                  <Globe className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
                 )}
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-card dark:border-[#0B0B0F] flex items-center justify-center">
-                  <Sparkles className="w-2 h-2 text-white" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-green-500 border-2 border-card dark:border-[#0B0B0F] flex items-center justify-center">
+                  <Sparkles className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-white" />
                 </div>
               </motion.div>
               
-              <div>
-                <h3 className="text-xl md:text-2xl font-bold text-foreground">{name}</h3>
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <div className="min-w-0">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">{name}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 sm:gap-2">
                   {isVertical ? (
                     <>
-                      <Zap className="w-3 h-3 text-orange-500" />
-                      Servidor PVP Brasileiro
+                      <Zap className="w-3 h-3 text-orange-500 flex-shrink-0" />
+                      <span className="truncate">PVP Brasileiro</span>
                     </>
                   ) : (
                     <>
-                      <Shield className="w-3 h-3 text-orange-500" />
-                      Servidor Roleplay
+                      <Shield className="w-3 h-3 text-orange-500 flex-shrink-0" />
+                      <span className="truncate">Roleplay</span>
                     </>
                   )}
                 </p>
@@ -331,20 +450,20 @@ function ServerCard({
             <motion.div 
               animate={{ scale: online ? [1, 1.05, 1] : 1 }}
               transition={{ duration: 2, repeat: Infinity }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full flex-shrink-0 ${
                 online 
                   ? "bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30" 
                   : "bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30"
               }`}
             >
-              <span className={`w-2 h-2 rounded-full ${online ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
-              <span className="text-xs font-semibold uppercase tracking-wide">{online ? "Online" : "Offline"}</span>
+              <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${online ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
+              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide">{online ? "Online" : "Offline"}</span>
             </motion.div>
           </div>
         </div>
 
         {/* Video Section */}
-        <div className="p-5 md:p-6">
+        <div className="p-4 sm:p-5 md:p-6">
           <VideoPlayer
             videoPath={videoPath}
             isVertical={isVertical}
@@ -355,62 +474,60 @@ function ServerCard({
         </div>
 
         {/* Stats Grid - FiveM + Discord */}
-        <div className="grid grid-cols-3 gap-px bg-border/50 dark:bg-white/10 mx-5 md:mx-6 rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-border/50 dark:bg-white/10 mx-4 sm:mx-5 md:mx-6 rounded-2xl overflow-hidden">
           {/* FiveM Stats */}
-          <div className="bg-card dark:bg-white/5 p-4 text-center">
-            <Users className="w-5 h-5 text-orange-500 mx-auto mb-2" />
+          <div className="bg-card dark:bg-white/5 p-3 sm:p-4 text-center">
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 mx-auto mb-1.5 sm:mb-2" />
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mx-auto text-muted-foreground" />
             ) : (
-              <p className="text-xl font-bold text-foreground">{formatNumber(players)}</p>
+              <p className="text-lg sm:text-xl font-bold text-foreground">{formatNumber(players)}</p>
             )}
-            <p className="text-xs text-muted-foreground">No Servidor</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">No Servidor</p>
           </div>
           
           {/* Discord Stats */}
-          <div className="bg-card dark:bg-white/5 p-4 text-center">
-            <MessageCircle className="w-5 h-5 text-[#5865F2] mx-auto mb-2" />
+          <div className="bg-card dark:bg-white/5 p-3 sm:p-4 text-center">
+            <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-[#5865F2] mx-auto mb-1.5 sm:mb-2" />
             {discordLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mx-auto text-muted-foreground" />
             ) : (
-              <p className="text-xl font-bold text-foreground">{formatNumber(memberCount)}</p>
+              <p className="text-lg sm:text-xl font-bold text-foreground">{formatNumber(memberCount)}</p>
             )}
-            <p className="text-xs text-muted-foreground">Membros Discord</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Membros Discord</p>
           </div>
-          <div className="bg-card dark:bg-white/5 p-4 text-center">
-            <Radio className="w-5 h-5 text-green-500 mx-auto mb-2" />
+          <div className="bg-card dark:bg-white/5 p-3 sm:p-4 text-center col-span-2 sm:col-span-1">
+            <Radio className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mx-auto mb-1.5 sm:mb-2" />
             {discordLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mx-auto text-muted-foreground" />
             ) : (
-              <p className="text-xl font-bold text-foreground">{formatNumber(onlineCount)}</p>
+              <p className="text-lg sm:text-xl font-bold text-foreground">{formatNumber(onlineCount)}</p>
             )}
-            <p className="text-xs text-muted-foreground">Online Discord</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Online Discord</p>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="relative z-10 p-5 md:p-6 space-y-3">
+        <div className="relative z-10 p-4 sm:p-5 md:p-6 space-y-3">
           {/* Main buttons */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <Button
               asChild
-              size="lg"
-              className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_10px_40px_rgba(249,115,22,0.4)] border-0"
+              className="flex-1 h-10 sm:h-11 text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_10px_40px_rgba(249,115,22,0.4)] border-0"
             >
               <a href={connectUrl} target="_blank" rel="noopener noreferrer">
-                <Play className="w-5 h-5 mr-2" />
-                Conectar ao Servidor
-                <ChevronRight className="w-4 h-4 ml-1" />
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                Conectar
+                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
               </a>
             </Button>
             <Button
               asChild
-              size="lg"
               variant="outline"
-              className="w-full sm:w-auto border-[#5865F2]/50 text-[#5865F2] hover:bg-[#5865F2]/10 hover:border-[#5865F2] rounded-xl transition-all duration-300"
+              className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base border-[#5865F2]/50 text-[#5865F2] hover:bg-[#5865F2]/10 hover:border-[#5865F2] rounded-xl transition-all duration-300"
             >
               <a href={discordUrl} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="w-5 h-5 mr-2" />
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Discord
               </a>
             </Button>
@@ -455,57 +572,57 @@ function CommunityHighlight({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="mb-12"
+      className="mb-8 sm:mb-12"
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {/* Total Discord Members */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#5865F2]/10 to-[#5865F2]/5 dark:from-[#5865F2]/20 dark:to-[#5865F2]/10 border border-[#5865F2]/20 p-6">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#5865F2]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#5865F2]/10 to-[#5865F2]/5 dark:from-[#5865F2]/20 dark:to-[#5865F2]/10 border border-[#5865F2]/20 p-4 sm:p-6">
+          <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-[#5865F2]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#5865F2]/20 flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-[#5865F2]" />
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-[#5865F2]/20 flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-[#5865F2]" />
               </div>
-              <span className="text-sm font-medium text-muted-foreground">Comunidade Discord</span>
+              <span className="text-xs sm:text-sm font-medium text-muted-foreground">Discord</span>
             </div>
-            <p className="text-3xl md:text-4xl font-bold text-foreground">
-              {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : formatNumber(totalDiscordMembers)}
+            <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+              {loading ? <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin" /> : formatNumber(totalDiscordMembers)}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">membros totais</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">membros</p>
           </div>
         </div>
 
         {/* Discord Online Now */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/10 to-green-500/5 dark:from-green-500/20 dark:to-green-500/10 border border-green-500/20 p-6">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-500/10 to-green-500/5 dark:from-green-500/20 dark:to-green-500/10 border border-green-500/20 p-4 sm:p-6">
+          <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-green-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-                <UserCheck className="w-5 h-5 text-green-500" />
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-green-500/20 flex items-center justify-center">
+                <UserCheck className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
               </div>
-              <span className="text-sm font-medium text-muted-foreground">Online no Discord</span>
+              <span className="text-xs sm:text-sm font-medium text-muted-foreground">Online</span>
             </div>
-            <p className="text-3xl md:text-4xl font-bold text-foreground">
-              {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : formatNumber(totalDiscordOnline)}
+            <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+              {loading ? <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin" /> : formatNumber(totalDiscordOnline)}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">online agora</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">agora</p>
           </div>
         </div>
 
         {/* FiveM Players */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 dark:from-orange-500/20 dark:to-orange-500/10 border border-orange-500/20 p-6">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 dark:from-orange-500/20 dark:to-orange-500/10 border border-orange-500/20 p-4 sm:p-6 col-span-2 lg:col-span-1">
+          <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
-                <Gamepad2 className="w-5 h-5 text-orange-500" />
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-orange-500/20 flex items-center justify-center">
+                <Gamepad2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
               </div>
-              <span className="text-sm font-medium text-muted-foreground">Jogando Agora</span>
+              <span className="text-xs sm:text-sm font-medium text-muted-foreground">Jogando</span>
             </div>
-            <p className="text-3xl md:text-4xl font-bold text-foreground">
-              {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : formatNumber(totalFivemPlayers)}
+            <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+              {loading ? <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin" /> : formatNumber(totalFivemPlayers)}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">nos servidores</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">nos servidores</p>
           </div>
         </div>
       </div>
@@ -938,8 +1055,25 @@ export function GtaRpPageContent() {
           </div>
         )}
 
-        {/* Servers Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        {/* ========================================
+            MOBILE/TABLET: Carrossel (< lg = 1024px)
+            ======================================== */}
+        <div className="lg:hidden mb-12">
+          <MobileServersCarousel
+            kushServer={kushServer}
+            flowServer={flowServer}
+            kushDiscord={kushDiscord}
+            flowDiscord={flowDiscord}
+            fivemLoading={fivemLoading}
+            discordLoading={discordLoading}
+          />
+        </div>
+
+        {/* ========================================
+            DESKTOP: Grid Original (>= lg = 1024px)
+            100% IGUAL AO ORIGINAL
+            ======================================== */}
+        <div className="hidden lg:grid lg:grid-cols-2 gap-8 mb-12">
           {/* KUSH PVP */}
           <ServerCard
             server={kushServer}
