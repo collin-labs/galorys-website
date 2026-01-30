@@ -3,11 +3,11 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const redemption = await prisma.userReward.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         user: {
           select: {
@@ -41,7 +41,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const data = await request.json()
@@ -78,7 +78,7 @@ export async function PATCH(
     if (data.addressZip !== undefined) updateData.addressZip = data.addressZip
 
     const redemption = await prisma.userReward.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: updateData,
       include: {
         user: { select: { name: true, email: true } },
@@ -95,12 +95,12 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Buscar resgate para devolver pontos
     const redemption = await prisma.userReward.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: { reward: true }
     })
 
@@ -130,7 +130,7 @@ export async function DELETE(
     })
 
     // Deletar resgate
-    await prisma.userReward.delete({ where: { id: params.id } })
+    await prisma.userReward.delete({ where: { id: (await params).id } })
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

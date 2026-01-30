@@ -7,7 +7,7 @@ export async function GET() {
       orderBy: [{ team: { order: 'asc' } }, { nickname: 'asc' }],
       include: {
         team: {
-          select: { id: true, name: true, game: true }
+          select: { id: true, name: true, slug: true, game: true }
         }
       }
     })

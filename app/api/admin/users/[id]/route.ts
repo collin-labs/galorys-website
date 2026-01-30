@@ -3,11 +3,11 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         rewards: {
           include: { reward: true },
@@ -34,7 +34,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const data = await request.json()
@@ -48,14 +48,14 @@ export async function PATCH(
     if (data.banned !== undefined) updateData.banned = data.banned
     if (data.addPoints !== undefined) {
       // Adicionar pontos ao valor atual
-      const currentUser = await prisma.user.findUnique({ where: { id: params.id } })
+      const currentUser = await prisma.user.findUnique({ where: { id: (await params).id } })
       if (currentUser) {
         updateData.points = currentUser.points + data.addPoints
         
         // Registrar atividade
         await prisma.activity.create({
           data: {
-            userId: params.id,
+            userId: (await params).id,
             type: 'POINTS_ADDED',
             points: data.addPoints,
             description: data.reason || 'Pontos adicionados pelo admin'
@@ -65,7 +65,7 @@ export async function PATCH(
     }
 
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: updateData
     })
 
@@ -78,13 +78,13 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar se não é o próprio admin tentando se deletar
     // (Isso seria verificado com autenticação real)
     
-    await prisma.user.delete({ where: { id: params.id } })
+    await prisma.user.delete({ where: { id: (await params).id } })
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Erro ao excluir usuário:', error)

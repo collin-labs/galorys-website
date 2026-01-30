@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth"
 // GET - Buscar jogo específico
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -15,7 +15,7 @@ export async function GET(
     }
 
     const game = await prisma.playableGame.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: { category: true }
     })
 
@@ -33,7 +33,7 @@ export async function GET(
 // PUT - Atualizar jogo
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -59,7 +59,7 @@ export async function PUT(
 
     // Verificar se jogo existe
     const existingGame = await prisma.playableGame.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!existingGame) {
@@ -80,7 +80,7 @@ export async function PUT(
       const slugExists = await prisma.playableGame.findFirst({
         where: { 
           slug,
-          NOT: { id: params.id }
+          NOT: { id: (await params).id }
         }
       })
       
@@ -91,7 +91,7 @@ export async function PUT(
 
     // Atualizar jogo
     const game = await prisma.playableGame.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         ...(name && { name }),
         slug,
@@ -122,7 +122,7 @@ export async function PUT(
 // DELETE - Excluir jogo
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -132,7 +132,7 @@ export async function DELETE(
 
     // Verificar se jogo existe
     const existingGame = await prisma.playableGame.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!existingGame) {
@@ -141,7 +141,7 @@ export async function DELETE(
 
     // Excluir jogo
     await prisma.playableGame.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     return NextResponse.json({ message: "Jogo excluído com sucesso" })

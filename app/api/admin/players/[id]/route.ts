@@ -3,11 +3,13 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+    
     const player = await prisma.player.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         team: {
           select: { id: true, name: true, game: true }
@@ -34,13 +36,14 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const data = await request.json()
     
     const player = await prisma.player.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(data.nickname !== undefined && { nickname: data.nickname }),
         ...(data.realName !== undefined && { realName: data.realName }),
@@ -70,11 +73,13 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+    
     await prisma.player.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({ success: true })

@@ -1,63 +1,65 @@
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
-import { PlayerProfile } from "@/components/teams/player-profile"
-import { getTeamBySlug, teams } from "@/lib/data/teams"
-import { getPlayerById, getTeammates, getPlayersByTeam } from "@/lib/data/players"
+import { PlayerProfileDynamic } from "@/components/teams/player-profile-dynamic"
+import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 
 interface PlayerPageProps {
   params: Promise<{ slug: string; playerId: string }>
 }
 
-export async function generateStaticParams() {
-  const paths: { slug: string; playerId: string }[] = []
-
-  teams.forEach((team) => {
-    const teamPlayers = getPlayersByTeam(team.slug)
-    teamPlayers.forEach((player) => {
-      paths.push({
-        slug: team.slug,
-        playerId: player.id,
-      })
-    })
-  })
-
-  return paths
-}
-
 export async function generateMetadata({ params }: PlayerPageProps) {
   const { slug, playerId } = await params
-  const team = getTeamBySlug(slug)
-  const player = getPlayerById(playerId)
+  
+  const player = await prisma.player.findUnique({
+    where: { id: playerId },
+    include: { team: true }
+  })
 
-  if (!team || !player) {
+  if (!player || player.team.slug !== slug) {
     return {
       title: "Jogador não encontrado | Galorys eSports",
     }
   }
 
   return {
-    title: `${player.nickname} - ${team.name} | Galorys eSports`,
-    description: `Conheça ${player.nickname} (${player.realName}), ${player.role} do time ${team.name} da Galorys.`,
+    title: `${player.nickname} - ${player.team.name} | Galorys eSports`,
+    description: `Conheça ${player.nickname}${player.realName ? ` (${player.realName})` : ''}, ${player.role || 'jogador'} do time ${player.team.name} da Galorys.`,
   }
 }
 
 export default async function PlayerPage({ params }: PlayerPageProps) {
   const { slug, playerId } = await params
-  const team = getTeamBySlug(slug)
-  const player = getPlayerById(playerId)
+  
+  // Buscar jogador com time
+  const player = await prisma.player.findUnique({
+    where: { id: playerId },
+    include: { team: true }
+  })
 
-  if (!team || !player) {
+  if (!player || player.team.slug !== slug) {
     notFound()
   }
 
-  const teammates = getTeammates(slug, playerId)
+  // Buscar colegas de time (ativos, excluindo o jogador atual)
+  const teammates = await prisma.player.findMany({
+    where: {
+      teamId: player.teamId,
+      active: true,
+      id: { not: playerId }
+    },
+    take: 4
+  })
 
   return (
     <main className="min-h-screen bg-background overflow-x-hidden flex flex-col">
       <Header />
       <div className="flex-1">
-        <PlayerProfile player={player} team={team} teammates={teammates} />
+        <PlayerProfileDynamic 
+          player={player} 
+          team={player.team} 
+          teammates={teammates} 
+        />
       </div>
       <Footer />
     </main>

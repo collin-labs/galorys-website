@@ -3,11 +3,11 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const reward = await prisma.reward.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!reward) {
@@ -22,13 +22,13 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const data = await request.json()
     
     const reward = await prisma.reward.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.description !== undefined && { description: data.description }),
@@ -49,10 +49,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await prisma.reward.delete({ where: { id: params.id } })
+    await prisma.reward.delete({ where: { id: (await params).id } })
     return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Erro ao excluir recompensa' }, { status: 500 })

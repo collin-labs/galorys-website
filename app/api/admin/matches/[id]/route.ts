@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const match = await prisma.match.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: { team: { select: { id: true, name: true } } }
     })
     if (!match) return NextResponse.json({ error: 'Partida não encontrada' }, { status: 404 })
@@ -14,11 +14,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const data = await request.json()
     const match = await prisma.match.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         ...(data.opponent !== undefined && { opponent: data.opponent }),
         ...(data.opponentLogo !== undefined && { opponentLogo: data.opponentLogo }),
@@ -35,9 +35,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await prisma.match.delete({ where: { id: params.id } })
+    await prisma.match.delete({ where: { id: (await params).id } })
     return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

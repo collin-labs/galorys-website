@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const news = await prisma.news.findUnique({ where: { id: params.id } })
+    const news = await prisma.news.findUnique({ where: { id: (await params).id } })
     if (!news) return NextResponse.json({ error: 'Notícia não encontrada' }, { status: 404 })
     return NextResponse.json({ news })
   } catch (error) {
@@ -11,11 +11,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const data = await request.json()
     const news = await prisma.news.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         ...(data.title !== undefined && { title: data.title }),
         ...(data.slug !== undefined && { slug: data.slug }),
@@ -36,9 +36,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await prisma.news.delete({ where: { id: params.id } })
+    await prisma.news.delete({ where: { id: (await params).id } })
     return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
