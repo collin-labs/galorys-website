@@ -3,25 +3,64 @@ import { prisma } from "@/lib/prisma"
 
 // Códigos padrão dos servidores (fallback se não houver no banco)
 const DEFAULT_SERVERS = [
-  { code: "r4z8dg", name: "KUSH PVP", game: "gtarp-kush", instagram: "@joguekush", videoPath: "/videos/video-kush.mp4", discordInvite: "kushpvp" },
-  { code: "3emg7o", name: "Flow RP", game: "gtarp-flow", instagram: "@flowrpgg", videoPath: "/videos/video-flow.mp4", discordInvite: "flowrp" },
+  { code: "r4z8dg", name: "KUSH PVP", game: "gtarp-kush", instagram: "@joguekush", videoPath: "/videos/video-kush.mp4", discordInvite: "kushpvp", serverIp: "172.84.94.77", serverPort: 30120 },
+  { code: "3emg7o", name: "Flow RP", game: "gtarp-flow", instagram: "@flowrpgg", videoPath: "/videos/video-flow.mp4", discordInvite: "flowrp", serverIp: "45.40.99.228", serverPort: 30120 },
 ]
 
-// Cache para não sobrecarregar a API do FiveM
+// Cache para não sobrecarregar as APIs
 let cache: {
   data: any
   timestamp: number
 } | null = null
 
-const CACHE_DURATION = 60 * 1000 // 1 minuto
+const CACHE_DURATION = 30 * 1000 // 30 segundos (pode ser menor agora que é direto)
 
 // Função para limpar o cache (exportada para uso externo)
 export function clearFivemCache() {
   cache = null
 }
 
-// Função para buscar dados de um servidor FiveM
-async function fetchServerData(serverCode: string) {
+// ============================================
+// MÉTODO DIRETO (recomendado pelo Eric)
+// Busca players.json direto do servidor FiveM
+// ============================================
+async function fetchPlayersDirectly(ip: string, port: number): Promise<{ count: number, online: boolean }> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5s timeout
+    
+    const response = await fetch(
+      `http://${ip}:${port}/players.json`,
+      { 
+        signal: controller.signal,
+        cache: 'no-store'
+      }
+    )
+    
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      console.error(`Erro ao buscar players direto ${ip}:${port}: ${response.status}`)
+      return { count: 0, online: false }
+    }
+    
+    const players = await response.json()
+    // players.json retorna um array de jogadores, basta contar
+    return { 
+      count: Array.isArray(players) ? players.length : 0, 
+      online: true 
+    }
+  } catch (error) {
+    console.error(`Erro ao buscar players direto ${ip}:${port}:`, error)
+    return { count: 0, online: false }
+  }
+}
+
+// ============================================
+// MÉTODO FALLBACK (API pública do FiveM)
+// Usado quando não tem IP:Porta configurado
+// ============================================
+async function fetchServerDataFallback(serverCode: string) {
   try {
     const response = await fetch(
       `https://servers-frontend.fivem.net/api/servers/single/${serverCode}`,
@@ -46,8 +85,46 @@ async function fetchServerData(serverCode: string) {
   }
 }
 
-// Função para extrair dados relevantes do servidor
-function parseServerData(data: any, serverInfo: { code: string, name: string, game: string, instagram?: string | null, videoPath?: string | null, discordInvite?: string | null }) {
+// Tipo para serverInfo
+interface ServerInfo {
+  code: string
+  name: string
+  game: string
+  instagram?: string | null
+  videoPath?: string | null
+  discordInvite?: string | null
+  serverIp?: string | null
+  serverPort?: number | null
+}
+
+// Função para buscar dados do servidor (escolhe método automaticamente)
+async function fetchServerData(serverInfo: ServerInfo) {
+  // Se tem IP e Porta, usa método direto (mais rápido e preciso)
+  if (serverInfo.serverIp && serverInfo.serverPort) {
+    const { count, online } = await fetchPlayersDirectly(serverInfo.serverIp, serverInfo.serverPort)
+    return {
+      code: serverInfo.code,
+      game: serverInfo.game,
+      name: serverInfo.name,
+      players: count,
+      maxPlayers: 128, // Valor padrão (players.json não retorna isso)
+      online,
+      hostname: serverInfo.name,
+      connectUrl: `https://cfx.re/join/${serverInfo.code}`,
+      instagram: serverInfo.instagram || null,
+      videoPath: serverInfo.videoPath || null,
+      discordInvite: serverInfo.discordInvite || null,
+      method: 'direct' // Para debug
+    }
+  }
+  
+  // Fallback: usa API pública do FiveM
+  const data = await fetchServerDataFallback(serverInfo.code)
+  return parseServerDataFallback(data, serverInfo)
+}
+
+// Parse dos dados do fallback (API pública)
+function parseServerDataFallback(data: any, serverInfo: ServerInfo) {
   if (!data || !data.Data) {
     return {
       code: serverInfo.code,
@@ -61,6 +138,7 @@ function parseServerData(data: any, serverInfo: { code: string, name: string, ga
       instagram: serverInfo.instagram || null,
       videoPath: serverInfo.videoPath || null,
       discordInvite: serverInfo.discordInvite || null,
+      method: 'fallback-offline'
     }
   }
 
@@ -78,10 +156,10 @@ function parseServerData(data: any, serverInfo: { code: string, name: string, ga
     instagram: serverInfo.instagram || null,
     videoPath: serverInfo.videoPath || null,
     discordInvite: serverInfo.discordInvite || null,
-    // Dados extras que podem ser úteis
     gametype: serverData.gametype || null,
     mapname: serverData.mapname || null,
     resources: serverData.resources?.length || 0,
+    method: 'fallback-fivem'
   }
 }
 
@@ -97,7 +175,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Tentar buscar configurações do banco de dados
-    let servers = DEFAULT_SERVERS
+    let servers: ServerInfo[] = DEFAULT_SERVERS
     
     try {
       const dbLinks = await prisma.gameLink.findMany({
@@ -115,6 +193,8 @@ export async function GET(request: NextRequest) {
           instagram: link.instagram,
           videoPath: link.videoPath,
           discordInvite: link.discordInvite,
+          serverIp: link.serverIp,
+          serverPort: link.serverPort,
         }))
       }
     } catch (dbError) {
@@ -122,11 +202,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar dados de todos os servidores em paralelo
-    const serverPromises = servers.map(async (server) => {
-      const data = await fetchServerData(server.code)
-      return parseServerData(data, server)
-    })
-
+    const serverPromises = servers.map(server => fetchServerData(server))
     const serversData = await Promise.all(serverPromises)
 
     // Calcular total de jogadores

@@ -18,6 +18,8 @@ interface GameLink {
   name: string
   serverCode: string
   serverUrl: string | null
+  serverIp: string | null
+  serverPort: number | null
   instagram: string | null
   videoPath: string | null
   discordInvite: string | null
@@ -448,6 +450,8 @@ function GameModal({
     name: "",
     serverCode: "",
     serverUrl: "",
+    serverIp: "",
+    serverPort: "",
     instagram: "",
     videoPath: "",
     discordInvite: "",
@@ -467,6 +471,8 @@ function GameModal({
         name: link.name,
         serverCode: link.serverCode,
         serverUrl: link.serverUrl || "",
+        serverIp: link.serverIp || "",
+        serverPort: link.serverPort?.toString() || "",
         instagram: link.instagram || "",
         videoPath: link.videoPath || "",
         discordInvite: link.discordInvite || "",
@@ -480,6 +486,8 @@ function GameModal({
         name: "",
         serverCode: "",
         serverUrl: "",
+        serverIp: "",
+        serverPort: "",
         instagram: "",
         videoPath: "",
         discordInvite: "",
@@ -539,7 +547,12 @@ function GameModal({
     
     setSaving(true)
     try {
-      await onSave(formData)
+      // Converter serverPort para número antes de enviar
+      const dataToSave = {
+        ...formData,
+        serverPort: formData.serverPort ? parseInt(formData.serverPort) : null
+      }
+      await onSave(dataToSave)
       onClose()
     } finally {
       setSaving(false)
@@ -683,6 +696,38 @@ function GameModal({
                 placeholder="Código do convite"
               />
             </div>
+            
+            {/* Campos de IP e Porta - apenas para GTA RP */}
+            {!isRoblox && (
+              <>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-green-500" />
+                    IP do Servidor
+                  </Label>
+                  <Input
+                    value={formData.serverIp}
+                    onChange={(e) => setFormData(prev => ({ ...prev, serverIp: e.target.value }))}
+                    placeholder="Ex: 45.40.99.228"
+                    className="font-mono"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-green-500" />
+                    Porta
+                  </Label>
+                  <Input
+                    type="number"
+                    value={formData.serverPort}
+                    onChange={(e) => setFormData(prev => ({ ...prev, serverPort: e.target.value }))}
+                    placeholder="Ex: 30120"
+                    className="font-mono"
+                  />
+                </div>
+              </>
+            )}
             
             <div className="space-y-2 sm:col-span-2">
               <Label className="flex items-center gap-2">

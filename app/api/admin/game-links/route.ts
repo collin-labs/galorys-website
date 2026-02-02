@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     
-    const { game, name, serverCode, serverUrl, instagram, videoPath, discordInvite, thumbnailUrl } = body
+    const { game, name, serverCode, serverUrl, serverIp, serverPort, instagram, videoPath, discordInvite, thumbnailUrl } = body
     
     if (!game || !name || !serverCode) {
       return NextResponse.json(
@@ -47,6 +47,8 @@ export async function POST(request: Request) {
         name,
         serverCode,
         serverUrl: serverUrl || null,
+        serverIp: serverIp || null,
+        serverPort: serverPort || null,
         instagram: instagram || null,
         videoPath: videoPath || null,
         discordInvite: discordInvite || null,

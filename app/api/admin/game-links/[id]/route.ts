@@ -33,7 +33,7 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
     
-    const { name, serverCode, serverUrl, instagram, videoPath, discordInvite, thumbnailUrl, active } = body
+    const { name, serverCode, serverUrl, serverIp, serverPort, instagram, videoPath, discordInvite, thumbnailUrl, active } = body
     
     const link = await prisma.gameLink.findUnique({
       where: { id }
@@ -49,6 +49,8 @@ export async function PUT(
         name: name !== undefined ? name : link.name,
         serverCode: serverCode !== undefined ? serverCode : link.serverCode,
         serverUrl: serverUrl !== undefined ? serverUrl : link.serverUrl,
+        serverIp: serverIp !== undefined ? (serverIp || null) : link.serverIp,
+        serverPort: serverPort !== undefined ? (serverPort || null) : link.serverPort,
         instagram: instagram !== undefined ? instagram : link.instagram,
         videoPath: videoPath !== undefined ? videoPath : link.videoPath,
         discordInvite: discordInvite !== undefined ? discordInvite : link.discordInvite,

@@ -338,6 +338,8 @@ model GameLink {
   name          String            // Nome amigável (ex: "Galorys Tycoon", "KUSH PVP")
   serverCode    String            // ID do jogo ou código do servidor FiveM
   serverUrl     String?           // URL completa de acesso
+  serverIp      String?           // IP direto do servidor FiveM (ex: "45.40.99.228")
+  serverPort    Int?              // Porta do servidor FiveM (ex: 30120)
   instagram     String?           // Handle do Instagram (ex: "@joguekush")
   videoPath     String?           // Caminho do vídeo (ex: "/videos/video-kush.mp4")
   discordInvite String?           // Código do convite Discord (ex: "flowrp" ou "kushpvp")
