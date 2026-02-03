@@ -1,16 +1,30 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { jwtVerify } from 'jose'
 
-export function middleware(request: NextRequest) {
+// ============================================
+// MIDDLEWARE DE AUTENTICAÇÃO - GALORYS
+// ============================================
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'TROQUE_ESTA_CHAVE_EM_PRODUCAO_32chars!'
+)
+
+const JWT_ISSUER = 'galorys.com'
+const JWT_AUDIENCE = 'galorys-admin'
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Rotas que precisam de autenticação
   const isAdminRoute = pathname.startsWith('/admin')
   const isLoginPage = pathname === '/admin/login'
+  const isRecoverPage = pathname.startsWith('/admin/login/recuperar')
+  const isNewPasswordPage = pathname.startsWith('/admin/login/nova-senha')
   const isApiAuth = pathname.startsWith('/api/auth')
 
-  // Permitir acesso à página de login e APIs de auth
-  if (isLoginPage || isApiAuth) {
+  // Permitir acesso à página de login, recuperação e APIs de auth
+  if (isLoginPage || isRecoverPage || isNewPasswordPage || isApiAuth) {
     return NextResponse.next()
   }
 
@@ -26,28 +40,35 @@ export function middleware(request: NextRequest) {
     }
 
     try {
-      // Decodificar e verificar sessão
-      const decoded = JSON.parse(Buffer.from(session.value, 'base64').toString())
-      
-      // Verificar expiração
-      if (decoded.exp < Date.now()) {
-        // Sessão expirada - limpar cookie e redirecionar
-        const response = NextResponse.redirect(new URL('/admin/login', request.url))
-        response.cookies.delete('admin_session')
-        return response
-      }
+      // ============================================
+      // VERIFICAR JWT ASSINADO
+      // ============================================
+      const { payload } = await jwtVerify(session.value, JWT_SECRET, {
+        issuer: JWT_ISSUER,
+        audience: JWT_AUDIENCE,
+      })
 
       // Verificar se é admin
-      if (decoded.role !== 'ADMIN') {
+      if (payload.role !== 'ADMIN') {
         const response = NextResponse.redirect(new URL('/admin/login', request.url))
         response.cookies.delete('admin_session')
         return response
       }
 
-      // Sessão válida - continuar
-      return NextResponse.next()
-    } catch {
-      // Erro ao decodificar - limpar cookie e redirecionar
+      // ============================================
+      // JWT VÁLIDO - Adicionar headers com info do usuário
+      // (para uso nas páginas, sem precisar decodificar novamente)
+      // ============================================
+      const response = NextResponse.next()
+      response.headers.set('x-user-id', payload.userId as string)
+      response.headers.set('x-user-email', payload.email as string)
+      response.headers.set('x-user-role', payload.role as string)
+      
+      return response
+    } catch (error) {
+      // JWT inválido, expirado ou adulterado
+      console.error('[MIDDLEWARE] Token inválido:', error)
+      
       const response = NextResponse.redirect(new URL('/admin/login', request.url))
       response.cookies.delete('admin_session')
       return response

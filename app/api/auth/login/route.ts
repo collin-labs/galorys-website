@@ -2,16 +2,46 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
+import { createAdminToken, validateAdminSession, checkRateLimit, resetRateLimit } from '@/lib/jwt'
 
-// POST - Login
+// ============================================
+// POST - LOGIN COM JWT SEGURO
+// ============================================
 export async function POST(request: NextRequest) {
   try {
+    // Pegar IP para rate limiting
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+               request.headers.get('x-real-ip') || 
+               'unknown'
+
     const { email, password } = await request.json()
 
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email e senha são obrigatórios' },
         { status: 400 }
+      )
+    }
+
+    // ============================================
+    // RATE LIMITING - Proteção contra brute force
+    // ============================================
+    const rateLimitKey = `login:${ip}:${email}`
+    const rateLimit = checkRateLimit(rateLimitKey)
+
+    if (!rateLimit.allowed) {
+      const resetInSeconds = Math.ceil(rateLimit.resetIn / 1000)
+      return NextResponse.json(
+        { 
+          error: `Muitas tentativas. Aguarde ${resetInSeconds} segundos.`,
+          retryAfter: resetInSeconds
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': String(resetInSeconds)
+          }
+        }
       )
     }
 
@@ -52,26 +82,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Criar sessão simples (token = id do usuário + timestamp + random)
-    const sessionToken = Buffer.from(
-      JSON.stringify({
-        userId: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        exp: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 dias
-      })
-    ).toString('base64')
+    // ============================================
+    // LOGIN BEM SUCEDIDO - Criar JWT assinado
+    // ============================================
+    
+    // Resetar rate limit após sucesso
+    resetRateLimit(rateLimitKey)
 
-    // Definir cookie
+    // Criar token JWT assinado
+    const token = await createAdminToken({
+      id: user.id,
+      email: user.email!,
+      name: user.name,
+      role: user.role,
+    })
+
+    // Definir cookie seguro
     const cookieStore = await cookies()
-    cookieStore.set('admin_session', sessionToken, {
+    cookieStore.set('admin_session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60, // 7 dias
       path: '/'
     })
+
+    // Log de login bem sucedido (para auditoria)
+    console.log(`[AUTH] Login bem sucedido: ${user.email} (IP: ${ip})`)
 
     return NextResponse.json({
       success: true,
@@ -91,7 +128,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - Logout
+// ============================================
+// DELETE - LOGOUT
+// ============================================
 export async function DELETE() {
   try {
     const cookieStore = await cookies()
@@ -107,7 +146,9 @@ export async function DELETE() {
   }
 }
 
-// GET - Verificar sessão
+// ============================================
+// GET - VERIFICAR SESSÃO (COM VALIDAÇÃO NO BANCO)
+// ============================================
 export async function GET() {
   try {
     const cookieStore = await cookies()
@@ -120,34 +161,22 @@ export async function GET() {
       )
     }
 
-    try {
-      const decoded = JSON.parse(Buffer.from(session.value, 'base64').toString())
-      
-      // Verificar expiração
-      if (decoded.exp < Date.now()) {
-        cookieStore.delete('admin_session')
-        return NextResponse.json(
-          { authenticated: false, error: 'Sessão expirada' },
-          { status: 401 }
-        )
-      }
+    // Validar sessão completa (JWT + banco de dados)
+    const validation = await validateAdminSession(session.value)
 
-      return NextResponse.json({
-        authenticated: true,
-        user: {
-          id: decoded.userId,
-          name: decoded.name,
-          email: decoded.email,
-          role: decoded.role
-        }
-      })
-    } catch {
+    if (!validation.valid) {
+      // Limpar cookie inválido
       cookieStore.delete('admin_session')
       return NextResponse.json(
-        { authenticated: false },
+        { authenticated: false, error: validation.error },
         { status: 401 }
       )
     }
+
+    return NextResponse.json({
+      authenticated: true,
+      user: validation.user
+    })
   } catch (error) {
     console.error('Erro ao verificar sessão:', error)
     return NextResponse.json(

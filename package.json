@@ -7,6 +7,7 @@
     "db:push": "prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "prisma studio",
+    "db:update-password": "npx tsx prisma/update-admin-password.ts",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start"
@@ -56,6 +57,7 @@
     "framer-motion": "12.26.1",
     "googleapis": "^170.1.0",
     "input-otp": "1.4.1",
+    "jose": "^5.2.0",
     "lucide-react": "^0.454.0",
     "next": "16.0.10",
     "next-auth": "^4.24.0",
