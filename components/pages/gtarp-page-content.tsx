@@ -646,15 +646,6 @@ function DiscordCommunitiesSection({
 
   const communities = [
     {
-      data: flowDiscord,
-      name: "Flow RP",
-      description: "Servidor de Roleplay com foco em histórias e narrativas imersivas",
-      color: "#5865F2",
-      fallbackCode: "flowrp",
-      icon: <Shield className="w-6 h-6" />,
-      gradient: "from-[#5865F2] to-indigo-600"
-    },
-    {
       data: kushDiscord,
       name: "KUSH PVP",
       description: "Servidor PVP com ação intensa e combates épicos",
@@ -662,6 +653,15 @@ function DiscordCommunitiesSection({
       fallbackCode: "kushpvp", 
       icon: <Zap className="w-6 h-6" />,
       gradient: "from-emerald-500 to-green-600"
+    },
+    {
+      data: flowDiscord,
+      name: "Flow RP",
+      description: "Servidor de Roleplay com foco em histórias e narrativas imersivas",
+      color: "#5865F2",
+      fallbackCode: "flowrp",
+      icon: <Shield className="w-6 h-6" />,
+      gradient: "from-[#5865F2] to-indigo-600"
     }
   ]
 
