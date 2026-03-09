@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StatusBadge } from "@/components/admin/status-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { getImageUrl } from "@/lib/image-url"
 import { Pagination } from "@/components/admin/pagination"
 import { SkeletonTable } from "@/components/admin/skeleton"
 
@@ -314,7 +315,7 @@ export default function JogadoresPage() {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Avatar className="w-9 h-9">
-                      <AvatarImage src={player.photo || "/placeholder.svg"} alt={player.nickname} />
+                      <AvatarImage src={getImageUrl(player.photo) || "/placeholder.svg"} alt={player.nickname} />
                       <AvatarFallback className="bg-muted text-foreground text-xs">
                         {player.nickname.charAt(0)}
                       </AvatarFallback>
