@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { ArrowRight, Twitter, Instagram, Twitch, Youtube, Trophy, Target, TrendingUp, Loader2, Medal, Star, ChevronLeft, ChevronRight } from "lucide-react"
 import { getPlayerAvatar } from "@/lib/data/players"
+import { getImageUrl } from "@/lib/image-url"
 
 // Interface para jogadores do banco (atualizada com stats)
 interface FeaturedPlayerDB {
@@ -216,7 +217,7 @@ function MobilePlayersCarousel({
               {/* Player Image */}
               <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-galorys-purple/20 to-galorys-pink/20">
                 <Image
-                  src={imgErrors[player.id] ? getPlayerAvatar(player.nickname) : player.photo}
+                  src={imgErrors[player.id] ? getPlayerAvatar(player.nickname) : getImageUrl(player.photo)}
                   alt={player.nickname}
                   fill
                   className="object-cover object-top"
@@ -466,7 +467,7 @@ export function PlayersSection() {
                       />
                     )}
                     <Image
-                      src={imgErrors[mainPlayer.id] ? getPlayerAvatar(mainPlayer.nickname) : mainPlayer.photo}
+                      src={imgErrors[mainPlayer.id] ? getPlayerAvatar(mainPlayer.nickname) : getImageUrl(mainPlayer.photo)}
                       alt={mainPlayer.nickname}
                       fill
                       className="object-cover object-top"
@@ -571,7 +572,7 @@ export function PlayersSection() {
                     <div className="relative w-32 md:w-40 flex-shrink-0">
                       <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-galorys-purple/20 to-galorys-pink/20">
                         <Image
-                          src={imgErrors[player.id] ? getPlayerAvatar(player.nickname) : player.photo}
+                          src={imgErrors[player.id] ? getPlayerAvatar(player.nickname) : getImageUrl(player.photo)}
                           alt={player.nickname}
                           fill
                           className="object-cover object-top group-hover:scale-105 transition-transform duration-500"

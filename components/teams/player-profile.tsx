@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import type { Player } from "@/lib/data/players"
 import { getPlayerAvatar } from "@/lib/data/players"
 import type { Team } from "@/lib/data/teams"
+import { getImageUrl } from "@/lib/image-url"
 
 interface PlayerProfileProps {
   player: Player
@@ -64,7 +65,7 @@ export function PlayerProfile({ player, team, teammates }: PlayerProfileProps) {
                   />
                 )}
                 <Image
-                  src={imgError ? getPlayerAvatar(player.nickname) : player.photo}
+                  src={imgError ? getPlayerAvatar(player.nickname) : getImageUrl(player.photo)}
                   alt={player.nickname}
                   fill
                   className="object-cover object-top"
@@ -224,7 +225,7 @@ export function PlayerProfile({ player, team, teammates }: PlayerProfileProps) {
                         onError={(e) => (e.currentTarget.style.display = 'none')}
                       />
                       <Image
-                        src={teammateErrors[teammate.id] ? getPlayerAvatar(teammate.nickname) : teammate.photo}
+                        src={teammateErrors[teammate.id] ? getPlayerAvatar(teammate.nickname) : getImageUrl(teammate.photo)}
                         alt={teammate.nickname}
                         fill
                         className="object-cover object-top group-hover:scale-105 transition-transform duration-500"

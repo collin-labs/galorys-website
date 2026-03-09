@@ -6,6 +6,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Gamepad2, Calendar, Twitter, Instagram, Twitch, Youtube } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { getImageUrl } from "@/lib/image-url"
 
 // Interfaces para dados do banco
 interface Player {
@@ -95,7 +96,7 @@ export function PlayerProfileDynamic({ player, team, teammates }: PlayerProfileD
                   />
                 )}
                 <Image
-                  src={imgError || !player.photo ? getPlayerAvatar(player.nickname) : player.photo}
+                  src={imgError || !player.photo ? getPlayerAvatar(player.nickname) : getImageUrl(player.photo)}
                   alt={player.nickname}
                   fill
                   className="object-cover object-top"
@@ -244,7 +245,7 @@ export function PlayerProfileDynamic({ player, team, teammates }: PlayerProfileD
                         onError={(e) => (e.currentTarget.style.display = 'none')}
                       />
                       <Image
-                        src={teammateErrors[teammate.id] || !teammate.photo ? getPlayerAvatar(teammate.nickname) : teammate.photo}
+                        src={teammateErrors[teammate.id] || !teammate.photo ? getPlayerAvatar(teammate.nickname) : getImageUrl(teammate.photo)}
                         alt={teammate.nickname}
                         fill
                         className="object-cover object-top group-hover:scale-105 transition-transform duration-500"

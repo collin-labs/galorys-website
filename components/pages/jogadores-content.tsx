@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { Users, Gamepad2, Trophy, Star, Twitter, Instagram, Twitch, Youtube, Loader2 } from "lucide-react"
+import { getImageUrl } from "@/lib/image-url"
 
 // Interfaces para os dados do banco
 interface Player {
@@ -214,7 +215,7 @@ export function JogadoresContent() {
                             />
                             {/* Player photo */}
                             <Image
-                              src={imgErrors[player.id] || !player.photo ? getPlayerAvatar(player.nickname) : player.photo}
+                              src={imgErrors[player.id] || !player.photo ? getPlayerAvatar(player.nickname) : getImageUrl(player.photo)}
                               alt={player.nickname}
                               fill
                               className="object-cover object-top group-hover:scale-105 transition-transform duration-300"

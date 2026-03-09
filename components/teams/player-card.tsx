@@ -7,6 +7,7 @@ import Image from "next/image"
 import { Twitter, Instagram, Twitch, Youtube } from "lucide-react"
 import type { Player } from "@/lib/data/players"
 import { getPlayerAvatar } from "@/lib/data/players"
+import { getImageUrl } from "@/lib/image-url"
 
 interface PlayerCardProps {
   player: Player
@@ -43,7 +44,7 @@ export function PlayerCard({ player, teamSlug, index = 0 }: PlayerCardProps) {
             
             {/* Player photo */}
             <Image
-              src={imgError ? getPlayerAvatar(player.nickname) : player.photo}
+              src={imgError ? getPlayerAvatar(player.nickname) : getImageUrl(player.photo)}
               alt={player.nickname}
               fill
               className="object-cover object-top group-hover:scale-105 transition-transform duration-500"

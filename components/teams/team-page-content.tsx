@@ -7,6 +7,7 @@ import Image from "next/image"
 import { ArrowLeft, Users, ExternalLink, Trophy, Loader2, Star, Twitter, Instagram, Twitch, Youtube } from "lucide-react"
 import { TeamHero } from "./team-hero"
 import { TeamInfo } from "./team-info"
+import { getImageUrl } from "@/lib/image-url"
 
 // Interface do jogador do banco
 interface Player {
@@ -150,7 +151,7 @@ export function TeamPageContent({ team }: TeamPageContentProps) {
                         />
                         {/* Player photo */}
                         <Image
-                          src={imgErrors[player.id] || !player.photo ? getPlayerAvatar(player.nickname) : player.photo}
+                          src={imgErrors[player.id] || !player.photo ? getPlayerAvatar(player.nickname) : getImageUrl(player.photo)}
                           alt={player.nickname}
                           fill
                           className="object-cover object-top group-hover:scale-105 transition-transform duration-300"
