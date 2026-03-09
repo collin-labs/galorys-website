@@ -27,6 +27,7 @@ export default function NovoJogadorPage() {
   const [loadingTeams, setLoadingTeams] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [photoError, setPhotoError] = useState("")
 
   const [formData, setFormData] = useState({
     nickname: "",
@@ -80,6 +81,7 @@ export default function NovoJogadorPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setPhotoError("")
     setUploadingPhoto(true)
     try {
       const formDataUpload = new FormData()
@@ -94,12 +96,13 @@ export default function NovoJogadorPage() {
       const data = await response.json()
       if (data.success) {
         setFormData({ ...formData, photo: data.path })
+        setPhotoError("")
       } else {
-        alert(data.error || 'Erro no upload')
+        setPhotoError(data.error || 'Erro no upload da imagem')
       }
     } catch (error) {
       console.error('Erro no upload:', error)
-      alert('Erro ao fazer upload da imagem')
+      setPhotoError('Erro de conexão ao fazer upload da imagem')
     } finally {
       setUploadingPhoto(false)
     }
@@ -296,7 +299,13 @@ export default function NovoJogadorPage() {
                   <><Upload className="w-4 h-4 mr-2" /> Escolher Foto</>
                 )}
               </Button>
-              <p className="text-xs text-muted-foreground mt-2">PNG, JPG ou WEBP. Recomendado: 400x400px</p>
+              <p className="text-xs text-muted-foreground mt-2">PNG, JPG, WEBP, GIF, AVIF, BMP, TIFF, HEIC, JFIF, SVG. Recomendado: 400x400px</p>
+              {photoError && (
+                <div className="mt-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
+                  <X className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-red-400">{photoError}</p>
+                </div>
+              )}
             </div>
           </div>
 
