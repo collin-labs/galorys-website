@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState, use, useEffect, useRef } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Users, Save, ImageIcon, Twitter, Instagram, Youtube, Twitch, Trash2, Upload, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -85,6 +84,8 @@ export default function EditarJogadorPage({ params }: { params: Promise<{ id: st
     const file = e.target.files?.[0]
     if (!file) return
 
+    console.log('[UPLOAD-CLIENT] Arquivo selecionado:', file.name, 'Tipo:', file.type, 'Tamanho:', (file.size / 1024).toFixed(1) + 'KB')
+
     setPhotoError("")
     setUploadingPhoto(true)
     try {
@@ -92,21 +93,44 @@ export default function EditarJogadorPage({ params }: { params: Promise<{ id: st
       formDataUpload.append('file', file)
       formDataUpload.append('folder', 'players')
 
+      console.log('[UPLOAD-CLIENT] Enviando para /api/upload...')
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formDataUpload
       })
 
+      console.log('[UPLOAD-CLIENT] Response status:', response.status)
+
+      if (!response.ok) {
+        let errorMsg = `Erro HTTP ${response.status}`
+        try {
+          const errorData = await response.json()
+          errorMsg = errorData.error || errorMsg
+        } catch {
+          const text = await response.text().catch(() => '')
+          console.error('[UPLOAD-CLIENT] Resposta não-JSON do servidor:', response.status, text.substring(0, 200))
+          errorMsg = `Erro no servidor (${response.status}). Verifique os logs do servidor.`
+        }
+        console.error('[UPLOAD-CLIENT] Erro:', errorMsg)
+        setPhotoError(errorMsg)
+        return
+      }
+
       const data = await response.json()
-      if (data.success) {
-        setFormData({ ...formData, photo: data.path })
+      console.log('[UPLOAD-CLIENT] Resposta:', data)
+
+      if (data.success && data.path) {
+        setFormData(prev => ({ ...prev, photo: data.path }))
         setPhotoError("")
+        console.log('[UPLOAD-CLIENT] ✅ Upload OK! Path:', data.path)
       } else {
-        setPhotoError(data.error || 'Erro no upload da imagem')
+        const msg = data.error || 'Erro no upload da imagem — resposta inesperada do servidor'
+        console.error('[UPLOAD-CLIENT] ❌ Falha:', msg)
+        setPhotoError(msg)
       }
     } catch (error) {
-      console.error('Erro no upload:', error)
-      setPhotoError('Erro de conexão ao fazer upload da imagem')
+      console.error('[UPLOAD-CLIENT] ❌ Erro de conexão:', error)
+      setPhotoError('Erro de conexão ao fazer upload da imagem. Verifique sua internet e tente novamente.')
     } finally {
       setUploadingPhoto(false)
     }
@@ -292,11 +316,12 @@ export default function EditarJogadorPage({ params }: { params: Promise<{ id: st
             <div className="w-24 h-24 rounded-xl bg-[#0d0d12] border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden relative">
               {formData.photo ? (
                 <>
-                  <Image src={formData.photo} alt="Foto" fill className="object-cover" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`${formData.photo}?t=${Date.now()}`} alt="Foto" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={removePhoto}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors z-10"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -322,6 +347,12 @@ export default function EditarJogadorPage({ params }: { params: Promise<{ id: st
                 )}
               </Button>
               <p className="text-xs text-muted-foreground mt-2">PNG, JPG, WEBP, GIF, AVIF, BMP, TIFF, HEIC, JFIF, SVG. Recomendado: 400x400px</p>
+              {formData.photo && !photoError && (
+                <div className="mt-2 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-start gap-2">
+                  <Save className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-green-400">Imagem carregada com sucesso!</p>
+                </div>
+              )}
               {photoError && (
                 <div className="mt-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
                   <X className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
