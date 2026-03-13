@@ -186,7 +186,87 @@ async function fetchRobloxGroupData(groupId: string = "313210721") {
 
 // ==================== FIVEM: BUSCAR STATS DO SERVIDOR ====================
 
-async function fetchFivemServerStats(code: string) {
+// ==================== FIVEM: MÉTODO 1 — dynamic.json (MELHOR) ====================
+// Endpoint leve que retorna { clients, hostname, gametype, mapname, sv_maxclients }
+// Não requer autenticação, não é afetado por sv_requestParanoia < 2
+// Ref: https://docs.fivem.net/ e código fonte InfoHttpHandler.cpp
+
+async function fetchFivemDynamic(ip: string, port: number) {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+    
+    const response = await fetch(
+      `http://${ip}:${port}/dynamic.json`,
+      { signal: controller.signal, cache: 'no-store' }
+    )
+    
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      console.log(`[FiveM] dynamic.json falhou HTTP ${response.status} para ${ip}:${port}`)
+      return null
+    }
+    
+    const data = await response.json()
+    const clients = data?.clients ?? 0
+    const maxPlayers = parseInt(data?.sv_maxclients) || 128
+    const hostname = data?.hostname?.replace(/\^[0-9]/g, '') || ""
+    
+    console.log(`[FiveM] ✅ dynamic.json OK: ${ip}:${port} → ${clients} jogadores (max: ${maxPlayers})`)
+    return {
+      players: clients,
+      maxPlayers,
+      hostname,
+      online: true,
+      method: 'dynamic.json'
+    }
+  } catch (error) {
+    console.log(`[FiveM] dynamic.json falhou para ${ip}:${port}:`, (error as any)?.message || error)
+    return null
+  }
+}
+
+// ==================== FIVEM: MÉTODO 2 — players.json (FALLBACK DIRETO) ====================
+// Retorna array de jogadores conectados. Pode ser bloqueado por sv_requestParanoia >= 2
+
+async function fetchFivemPlayers(ip: string, port: number) {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+    
+    const response = await fetch(
+      `http://${ip}:${port}/players.json`,
+      { signal: controller.signal, cache: 'no-store' }
+    )
+    
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      console.log(`[FiveM] players.json falhou HTTP ${response.status} para ${ip}:${port}`)
+      return null
+    }
+    
+    const players = await response.json()
+    const count = Array.isArray(players) ? players.length : 0
+    
+    console.log(`[FiveM] ✅ players.json OK: ${ip}:${port} → ${count} jogadores`)
+    return {
+      players: count,
+      maxPlayers: 128,
+      hostname: "",
+      online: true,
+      method: 'players.json'
+    }
+  } catch (error) {
+    console.log(`[FiveM] players.json falhou para ${ip}:${port}:`, (error as any)?.message || error)
+    return null
+  }
+}
+
+// ==================== FIVEM: MÉTODO 3 — API PÚBLICA (FALLBACK FINAL) ====================
+
+async function fetchFivemPublicApi(code: string) {
   try {
     const response = await fetch(
       `https://servers-frontend.fivem.net/api/servers/single/${code}`,
@@ -198,18 +278,46 @@ async function fetchFivemServerStats(code: string) {
       }
     )
     
-    if (!response.ok) return null
+    if (!response.ok) {
+      console.log(`[FiveM] API pública falhou HTTP ${response.status} para código ${code}`)
+      return null
+    }
     
     const data = await response.json()
     return {
       players: data?.Data?.clients || 0,
       maxPlayers: data?.Data?.sv_maxclients || 128,
       hostname: data?.Data?.hostname?.replace(/\^[0-9]/g, '') || "Servidor FiveM",
-      online: (data?.Data?.clients || 0) > 0 || data?.Data !== null
+      online: (data?.Data?.clients || 0) > 0 || data?.Data !== null,
+      method: 'api-publica'
     }
-  } catch {
+  } catch (error) {
+    console.log(`[FiveM] API pública falhou para código ${code}:`, (error as any)?.message || error)
     return null
   }
+}
+
+// ==================== FIVEM: ORQUESTRADOR COM 3 FALLBACKS ====================
+// Cadeia: dynamic.json → players.json → API pública FiveM
+
+async function fetchFivemServerWithFallback(code: string, serverIp?: string | null, serverPort?: number | null) {
+  // Se tem IP+Porta, tenta métodos diretos primeiro
+  if (serverIp && serverPort) {
+    // Prioridade 1: dynamic.json (mais leve, mais confiável)
+    console.log(`[FiveM] Tentando dynamic.json: ${serverIp}:${serverPort}`)
+    const dynamicResult = await fetchFivemDynamic(serverIp, serverPort)
+    if (dynamicResult) return dynamicResult
+    
+    // Prioridade 2: players.json (pode estar bloqueado por paranoia)
+    console.log(`[FiveM] Tentando players.json: ${serverIp}:${serverPort}`)
+    const playersResult = await fetchFivemPlayers(serverIp, serverPort)
+    if (playersResult) return playersResult
+    
+    console.log(`[FiveM] Métodos diretos falharam, tentando API pública...`)
+  }
+  
+  // Prioridade 3: API pública do FiveM (fallback final)
+  return await fetchFivemPublicApi(code)
 }
 
 // ==================== API PRINCIPAL ====================
@@ -303,12 +411,16 @@ export async function GET() {
 
     for (const link of fivemLinks) {
       const code = link.serverCode
-      console.log(`[FiveM] Processando: ${link.name} (${code})`)
+      console.log(`[FiveM] Processando: ${link.name} (${code}) IP: ${link.serverIp || 'N/A'}:${link.serverPort || 'N/A'}`)
       
-      const stats = await fetchFivemServerStats(code)
+      const stats = await fetchFivemServerWithFallback(code, link.serverIp, link.serverPort)
       
       const players = stats?.players || 0
       fivemTotalPlayers += players
+      
+      // SEMPRE usar o serverCode como fonte de verdade para a URL de conexão
+      // (evita bug quando o cliente muda o código mas a serverUrl antiga fica no banco)
+      const connectUrl = `https://cfx.re/join/${code}`
       
       fivemServers.push({
         code: code,
@@ -318,8 +430,8 @@ export async function GET() {
         maxPlayers: stats?.maxPlayers || 128,
         online: stats?.online || false,
         hostname: stats?.hostname || link.name,
-        url: link.serverUrl || `https://cfx.re/join/${code}`,
-        connectUrl: link.serverUrl || `https://cfx.re/join/${code}`,
+        url: connectUrl,
+        connectUrl: connectUrl,
         instagram: link.instagram || null,
         discord: link.discordInvite || null,
         video: link.videoPath || null,

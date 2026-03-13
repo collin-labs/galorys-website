@@ -548,8 +548,14 @@ function GameModal({
     setSaving(true)
     try {
       // Converter serverPort para número antes de enviar
+      // Auto-sincronizar serverUrl para FiveM quando o código muda
+      const autoServerUrl = !isRoblox 
+        ? `https://cfx.re/join/${formData.serverCode}` 
+        : formData.serverUrl
+      
       const dataToSave = {
         ...formData,
+        serverUrl: autoServerUrl,
         serverPort: formData.serverPort ? parseInt(formData.serverPort) : null
       }
       await onSave(dataToSave)

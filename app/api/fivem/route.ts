@@ -21,39 +21,60 @@ export function clearFivemCache() {
 }
 
 // ============================================
-// MÉTODO DIRETO (recomendado pelo Eric)
-// Busca players.json direto do servidor FiveM
+// MÉTODO DIRETO (recomendado)
+// Tenta dynamic.json primeiro (mais leve e confiável)
+// Fallback: players.json
 // ============================================
-async function fetchPlayersDirectly(ip: string, port: number): Promise<{ count: number, online: boolean }> {
+async function fetchPlayersDirectly(ip: string, port: number): Promise<{ count: number, maxPlayers: number, hostname: string, online: boolean, method: string }> {
+  // Prioridade 1: dynamic.json — retorna { clients, sv_maxclients, hostname }
+  // Não é afetado por sv_requestParanoia < 2
   try {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
     
     const response = await fetch(
-      `http://${ip}:${port}/players.json`,
-      { 
-        signal: controller.signal,
-        cache: 'no-store'
-      }
+      `http://${ip}:${port}/dynamic.json`,
+      { signal: controller.signal, cache: 'no-store' }
     )
     
     clearTimeout(timeoutId)
     
-    if (!response.ok) {
-      console.error(`Erro ao buscar players direto ${ip}:${port}: ${response.status}`)
-      return { count: 0, online: false }
-    }
-    
-    const players = await response.json()
-    // players.json retorna um array de jogadores, basta contar
-    return { 
-      count: Array.isArray(players) ? players.length : 0, 
-      online: true 
+    if (response.ok) {
+      const data = await response.json()
+      const clients = data?.clients ?? 0
+      const maxPlayers = parseInt(data?.sv_maxclients) || 128
+      const hostname = data?.hostname?.replace(/\^[0-9]/g, '') || ""
+      console.log(`[FiveM] ✅ dynamic.json OK: ${ip}:${port} → ${clients} jogadores`)
+      return { count: clients, maxPlayers, hostname, online: true, method: 'dynamic.json' }
     }
   } catch (error) {
-    console.error(`Erro ao buscar players direto ${ip}:${port}:`, error)
-    return { count: 0, online: false }
+    console.log(`[FiveM] dynamic.json falhou para ${ip}:${port}:`, (error as any)?.message || '')
   }
+  
+  // Prioridade 2: players.json — array de jogadores
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+    
+    const response = await fetch(
+      `http://${ip}:${port}/players.json`,
+      { signal: controller.signal, cache: 'no-store' }
+    )
+    
+    clearTimeout(timeoutId)
+    
+    if (response.ok) {
+      const players = await response.json()
+      const count = Array.isArray(players) ? players.length : 0
+      console.log(`[FiveM] ✅ players.json OK: ${ip}:${port} → ${count} jogadores`)
+      return { count, maxPlayers: 128, hostname: "", online: true, method: 'players.json' }
+    }
+  } catch (error) {
+    console.log(`[FiveM] players.json falhou para ${ip}:${port}:`, (error as any)?.message || '')
+  }
+  
+  console.error(`[FiveM] Todos os métodos diretos falharam para ${ip}:${port}`)
+  return { count: 0, maxPlayers: 128, hostname: "", online: false, method: 'failed' }
 }
 
 // ============================================
@@ -101,20 +122,20 @@ interface ServerInfo {
 async function fetchServerData(serverInfo: ServerInfo) {
   // Se tem IP e Porta, usa método direto (mais rápido e preciso)
   if (serverInfo.serverIp && serverInfo.serverPort) {
-    const { count, online } = await fetchPlayersDirectly(serverInfo.serverIp, serverInfo.serverPort)
+    const result = await fetchPlayersDirectly(serverInfo.serverIp, serverInfo.serverPort)
     return {
       code: serverInfo.code,
       game: serverInfo.game,
       name: serverInfo.name,
-      players: count,
-      maxPlayers: 128, // Valor padrão (players.json não retorna isso)
-      online,
-      hostname: serverInfo.name,
+      players: result.count,
+      maxPlayers: result.maxPlayers,
+      online: result.online,
+      hostname: result.hostname || serverInfo.name,
       connectUrl: `https://cfx.re/join/${serverInfo.code}`,
       instagram: serverInfo.instagram || null,
       videoPath: serverInfo.videoPath || null,
       discordInvite: serverInfo.discordInvite || null,
-      method: 'direct' // Para debug
+      method: result.method
     }
   }
   
