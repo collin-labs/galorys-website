@@ -528,9 +528,7 @@ function GameModal({
         ...prev,
         name: data.name || prev.name,
         serverUrl: data.url || prev.serverUrl,
-        thumbnailUrl: data.thumbnail || prev.thumbnailUrl,
-        // Se o lookup resolveu o Place ID real, usa ele como serverCode
-        serverCode: data.resolvedPlaceId || prev.serverCode
+        thumbnailUrl: data.thumbnail || prev.thumbnailUrl
       }))
       
       toast({ title: "✅ Jogo encontrado!" })

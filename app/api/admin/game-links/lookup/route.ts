@@ -28,38 +28,33 @@ async function fetchGameByUniverse(universeId: string) {
   return statsData.data?.[0] || null
 }
 
-// Buscar dados de jogo Roblox — aceita Place ID ou Universe ID
+// Buscar dados de jogo Roblox — aceita Universe ID ou Place ID
 async function lookupRoblox(inputId: string) {
   try {
-    // Estrategia: tenta como Place ID primeiro (mais comum, vem da URL do jogo)
-    // Se falhar, tenta como Universe ID direto
     let universeId: string | null = null
-    let wasPlaceId = false
+    let game: any = null
 
-    // Tentativa 1: inputId eh Place ID → converter para Universe ID
-    const converted = await placeIdToUniverseId(inputId)
-    if (converted) {
-      universeId = converted
-      wasPlaceId = true
+    // Tentativa 1: inputId eh Universe ID (comportamento original, funciona)
+    game = await fetchGameByUniverse(inputId)
+    if (game) {
+      universeId = inputId
     }
 
-    // Tentativa 2: inputId ja eh Universe ID
-    if (!universeId) {
-      const directGame = await fetchGameByUniverse(inputId)
-      if (directGame) {
-        universeId = inputId
+    // Tentativa 2: inputId eh Place ID → converter para Universe ID
+    if (!game) {
+      const converted = await placeIdToUniverseId(inputId)
+      if (converted) {
+        universeId = converted
+        game = await fetchGameByUniverse(converted)
       }
     }
 
-    if (!universeId) {
+    if (!game || !universeId) {
       return { error: "Jogo nao encontrado no Roblox. Verifique se o ID esta correto." }
     }
 
-    const game = await fetchGameByUniverse(universeId)
-    if (!game) return { error: "Jogo nao encontrado no Roblox" }
-
-    // O Place ID real do jogo (rootPlaceId da API do Roblox)
-    const placeId = game.rootPlaceId?.toString() || (wasPlaceId ? inputId : null)
+    // Place ID real do jogo (rootPlaceId retornado pela API Roblox)
+    const placeId = game.rootPlaceId?.toString() || null
 
     // Icone
     let icon: string | null = null
@@ -100,7 +95,6 @@ async function lookupRoblox(inputId: string) {
       thumbnail,
       rootPlaceId: placeId,
       universeId,
-      // serverCode deve ser o Place ID (padrao do games-stats)
       resolvedPlaceId: placeId,
       url: `https://www.roblox.com/games/${placeId || inputId}`
     }
