@@ -708,53 +708,64 @@ export function RobloxPageContent() {
       try {
         // Loading visivel so na primeira carga, refreshes sao silenciosos
         if (!hasFetchedRef.current) setLoading(true)
-        // Usar API unificada (mesma do live-counter)
         const response = await fetch("/api/games-stats")
         if (!response.ok) throw new Error("Falha ao carregar")
         const data = await response.json()
         
-        // Adaptar dados para o formato esperado
         if (data.roblox) {
           const games = data.roblox.games || []
           const totalPlaying = games.reduce((acc: number, g: any) => acc + (g.playing || 0), 0)
           const totalVisits = games.reduce((acc: number, g: any) => acc + (g.visits || 0), 0)
           const totalFavorites = games.reduce((acc: number, g: any) => acc + (g.favorites || g.favoritedCount || 0), 0)
           
-          setRobloxData({
-            group: data.roblox.group ? {
-              id: parseInt(data.roblox.group.id) || 0,
-              name: data.roblox.group.name || "Galorys",
-              description: "",
-              memberCount: data.roblox.group.memberCount || 0,
-              icon: data.roblox.group.icon,
-              url: `https://www.roblox.com/groups/${data.roblox.group.id}`
-            } : {
-              id: 0,
-              name: "Galorys",
-              description: "",
-              memberCount: 0,
-              icon: null,
-              url: ""
-            },
-            games: games.map((g: any) => ({
-              ...g,
-              universeId: parseInt(g.universeId) || 0,
-              favoritedCount: g.favorites || g.favoritedCount || 0,
-              maxPlayers: g.maxPlayers || 0,
-              created: g.created || "",
-              updated: g.updated || ""
-            })),
-            totals: {
-              playing: totalPlaying,
-              visits: totalVisits,
-              favorites: totalFavorites,
-              gamesCount: games.length
-            },
-            fetchedAt: data.fetchedAt || new Date().toISOString()
+          setRobloxData(prev => {
+            // Evita re-render se os totais nao mudaram (dados iguais = nao atualiza)
+            if (prev && 
+                prev.totals.playing === totalPlaying && 
+                prev.totals.visits === totalVisits &&
+                prev.totals.gamesCount === games.length) {
+              return prev
+            }
+            
+            return {
+              group: data.roblox.group ? {
+                id: parseInt(data.roblox.group.id) || 0,
+                name: data.roblox.group.name || "Galorys",
+                description: "",
+                memberCount: data.roblox.group.memberCount || 0,
+                icon: data.roblox.group.icon,
+                url: `https://www.roblox.com/groups/${data.roblox.group.id}`
+              } : {
+                id: 0,
+                name: "Galorys",
+                description: "",
+                memberCount: 0,
+                icon: null,
+                url: ""
+              },
+              games: games.map((g: any) => ({
+                ...g,
+                universeId: parseInt(g.universeId) || 0,
+                favoritedCount: g.favorites || g.favoritedCount || 0,
+                maxPlayers: g.maxPlayers || 0,
+                created: g.created || "",
+                updated: g.updated || ""
+              })),
+              totals: {
+                playing: totalPlaying,
+                visits: totalVisits,
+                favorites: totalFavorites,
+                gamesCount: games.length
+              },
+              fetchedAt: data.fetchedAt || new Date().toISOString()
+            }
           })
         }
       } catch (err) {
-        setError("Não foi possível carregar os dados do Roblox")
+        // So mostra erro na primeira carga, refreshes silenciosos ignoram falhas
+        if (!hasFetchedRef.current) {
+          setError("Não foi possível carregar os dados do Roblox")
+        }
         console.error(err)
       } finally {
         if (!hasFetchedRef.current) {
