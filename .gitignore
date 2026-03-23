@@ -24,8 +24,6 @@ yarn-error.log*
 .env.production
 
 # banco de dados local
-prisma/dev.db
-prisma/dev.db.bak
 
 # vercel
 .vercel
