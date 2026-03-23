@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { invalidateGamesCache } from "@/app/api/games-stats/route"
 
 // GET - Listar todos os jogos
 export async function GET() {
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
       }
     })
     
+    invalidateGamesCache()
     return NextResponse.json(newLink, { status: 201 })
   } catch (error) {
     console.error("Erro ao criar game link:", error)

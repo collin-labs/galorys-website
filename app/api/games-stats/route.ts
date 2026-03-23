@@ -24,81 +24,114 @@ const CACHE_DURATION = 30 * 1000 // 30 segundos
 // Cache de conversão Place ID -> Universe ID (persiste mais tempo)
 const placeToUniverseCache: Record<string, string> = {}
 
+// Invalida cache quando admin altera jogos
+export function invalidateGamesCache() {
+  cache = null
+}
+
 // ==================== ROBLOX: CONVERTER PLACE ID → UNIVERSE ID ====================
 
+// Fetch com timeout de 5s para evitar travamentos
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 5000) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const resp = await fetch(url, { ...options, signal: controller.signal })
+    clearTimeout(timeoutId)
+    return resp
+  } catch (err) {
+    clearTimeout(timeoutId)
+    throw err
+  }
+}
+
 async function convertPlaceIdToUniverseId(placeId: string): Promise<string | null> {
-  // Verificar cache local
   if (placeToUniverseCache[placeId]) {
-    console.log(`[Roblox] Cache hit: Place ${placeId} → Universe ${placeToUniverseCache[placeId]}`)
     return placeToUniverseCache[placeId]
   }
   
-  try {
-    // Usar API multiget-place-details que retorna o universeId
-    const response = await fetch(
-      `https://games.roblox.com/v1/games/multiget-place-details?placeIds=${placeId}`,
-      {
-        headers: { 
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      }
-    )
-    
-    if (response.ok) {
-      const data = await response.json()
-      const universeId = data?.[0]?.universeId?.toString()
-      
-      if (universeId) {
-        placeToUniverseCache[placeId] = universeId
-        console.log(`[Roblox] Convertido: Place ${placeId} → Universe ${universeId}`)
-        return universeId
-      }
-    }
-    
-    // Fallback: tentar API alternativa
-    const altResponse = await fetch(
-      `https://apis.roblox.com/universes/v1/places/${placeId}/universe`,
-      {
-        headers: { 
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      }
-    )
-    
-    if (altResponse.ok) {
-      const altData = await altResponse.json()
-      const universeId = altData?.universeId?.toString()
-      
-      if (universeId) {
-        placeToUniverseCache[placeId] = universeId
-        console.log(`[Roblox] Convertido (alt): Place ${placeId} → Universe ${universeId}`)
-        return universeId
-      }
-    }
-    
-    console.log(`[Roblox] Falha ao converter Place ${placeId}`)
-    return null
-  } catch (error) {
-    console.error(`[Roblox] Erro ao converter Place ${placeId}:`, error)
-    return null
+  const headers = { 
+    'Accept': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
   }
+
+  try {
+    // Metodo 1 (principal): API publica sem auth
+    const primaryResp = await fetchWithTimeout(
+      `https://apis.roblox.com/universes/v1/places/${placeId}/universe`,
+      { headers }
+    )
+    
+    if (primaryResp.ok) {
+      const primaryData = await primaryResp.json()
+      const universeId = primaryData?.universeId?.toString()
+      
+      if (universeId) {
+        placeToUniverseCache[placeId] = universeId
+        console.log(`[Roblox] Place ${placeId} → Universe ${universeId}`)
+        return universeId
+      }
+    }
+  } catch (err) {
+    console.log(`[Roblox] Metodo 1 timeout/erro para ${placeId}`)
+  }
+
+  try {
+    // Metodo 2 (fallback): multiget-place-details (pode exigir auth)
+    const fallbackResp = await fetchWithTimeout(
+      `https://games.roblox.com/v1/games/multiget-place-details?placeIds=${placeId}`,
+      { headers }
+    )
+    
+    if (fallbackResp.ok) {
+      const fallbackData = await fallbackResp.json()
+      const universeId = fallbackData?.[0]?.universeId?.toString()
+      
+      if (universeId) {
+        placeToUniverseCache[placeId] = universeId
+        console.log(`[Roblox] Place ${placeId} → Universe ${universeId} (fallback)`)
+        return universeId
+      }
+    }
+  } catch (err) {
+    console.log(`[Roblox] Metodo 2 timeout/erro para ${placeId}`)
+  }
+
+  try {
+    // Metodo 3: talvez o cliente colou um Universe ID direto
+    const testResp = await fetchWithTimeout(
+      `https://games.roblox.com/v1/games?universeIds=${placeId}`,
+      { headers }
+    )
+    
+    if (testResp.ok) {
+      const testData = await testResp.json()
+      if (testData?.data?.[0]?.id) {
+        placeToUniverseCache[placeId] = placeId
+        console.log(`[Roblox] ${placeId} JA era Universe ID`)
+        return placeId
+      }
+    }
+  } catch (err) {
+    console.log(`[Roblox] Metodo 3 timeout/erro para ${placeId}`)
+  }
+    
+  console.log(`[Roblox] Falha total ao converter: ${placeId}`)
+  return null
 }
 
 // ==================== ROBLOX: BUSCAR STATS DO JOGO ====================
 
 async function fetchRobloxGameStats(placeId: string, universeId: string) {
+  const headers = { 
+    'Accept': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+  }
+
   try {
-    // Buscar stats do jogo
-    const statsResponse = await fetch(
+    const statsResponse = await fetchWithTimeout(
       `https://games.roblox.com/v1/games?universeIds=${universeId}`,
-      {
-        headers: { 
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      }
+      { headers }
     )
     
     if (!statsResponse.ok) {
@@ -110,15 +143,15 @@ async function fetchRobloxGameStats(placeId: string, universeId: string) {
     const game = statsData.data?.[0]
     
     if (!game) {
-      console.log(`[Roblox] Jogo não encontrado para Universe ${universeId}`)
+      console.log(`[Roblox] Jogo nao encontrado para Universe ${universeId}`)
       return null
     }
     
-    // Buscar ícone
     let icon: string | null = null
     try {
-      const iconResp = await fetch(
-        `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=Png`
+      const iconResp = await fetchWithTimeout(
+        `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=Png`,
+        { headers }, 3000
       )
       if (iconResp.ok) {
         const iconData = await iconResp.json()
@@ -126,11 +159,11 @@ async function fetchRobloxGameStats(placeId: string, universeId: string) {
       }
     } catch {}
     
-    // Buscar thumbnail
     let thumbnail: string | null = null
     try {
-      const thumbResp = await fetch(
-        `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&size=768x432&format=Png&countPerUniverse=1`
+      const thumbResp = await fetchWithTimeout(
+        `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&size=768x432&format=Png&countPerUniverse=1`,
+        { headers }, 3000
       )
       if (thumbResp.ok) {
         const thumbData = await thumbResp.json()
@@ -354,76 +387,97 @@ export async function GET() {
 
     console.log(`[DB] Roblox: ${robloxLinks.length}, FiveM: ${fivemLinks.length}`)
 
-    // 2. BUSCAR GRUPO ROBLOX
+    // 2. BUSCAR GRUPO ROBLOX (em paralelo com jogos)
     const groupLink = gameLinks.find(l => l.game === "roblox-group")
-    const group = await fetchRobloxGroupData(groupLink?.serverCode || "313210721")
+    const groupPromise = fetchRobloxGroupData(groupLink?.serverCode || "313210721")
 
-    // 3. PROCESSAR JOGOS ROBLOX
-    const robloxGames: any[] = []
+    // 3. PROCESSAR JOGOS ROBLOX (PARALELO para evitar timeout com muitos jogos)
     let robloxTotalPlayers = 0
 
-    for (const link of robloxLinks) {
+    async function processRobloxLink(link: any) {
       const placeId = link.serverCode
-      console.log(`[Roblox] Processando: ${link.name} (Place ID: ${placeId})`)
-      
-      // Converter Place ID → Universe ID
-      const universeId = await convertPlaceIdToUniverseId(placeId)
-      
-      if (!universeId) {
-        console.log(`[Roblox] ❌ Não conseguiu converter Place ID: ${placeId}`)
-        continue
-      }
-      
-      // Buscar stats
-      const stats = await fetchRobloxGameStats(placeId, universeId)
-      
-      if (stats) {
-        robloxTotalPlayers += stats.playing
-        
-        robloxGames.push({
-          id: stats.rootPlaceId || placeId,
-          placeId: placeId,
-          universeId: universeId,
-          name: link.name || stats.name,
-          description: stats.description,
-          playing: stats.playing,
-          visits: stats.visits,
-          favorites: stats.favorites,
-          favoritedCount: stats.favorites,
-          maxPlayers: stats.maxPlayers,
-          icon: stats.icon,
-          thumbnail: (link as any).thumbnailUrl || stats.thumbnail,
+
+      try {
+        const universeId = await convertPlaceIdToUniverseId(placeId)
+
+        if (!universeId) {
+          return {
+            id: placeId,
+            placeId,
+            universeId: null,
+            name: link.name,
+            description: "",
+            playing: 0,
+            visits: 0,
+            favorites: 0,
+            favoritedCount: 0,
+            maxPlayers: 50,
+            icon: null,
+            thumbnail: (link as any).thumbnailUrl || null,
+            url: link.serverUrl || `https://www.roblox.com/games/${placeId}`,
+            instagram: link.instagram || null,
+            videoPath: link.videoPath || null,
+            discordInvite: link.discordInvite || null,
+            offline: true
+          }
+        }
+
+        const stats = await fetchRobloxGameStats(placeId, universeId)
+
+        return {
+          id: stats?.rootPlaceId || placeId,
+          placeId,
+          universeId,
+          name: link.name || stats?.name || "Jogo Roblox",
+          description: stats?.description || "",
+          playing: stats?.playing || 0,
+          visits: stats?.visits || 0,
+          favorites: stats?.favorites || 0,
+          favoritedCount: stats?.favorites || 0,
+          maxPlayers: stats?.maxPlayers || 50,
+          icon: stats?.icon || null,
+          thumbnail: (link as any).thumbnailUrl || stats?.thumbnail || null,
           url: link.serverUrl || `https://www.roblox.com/games/${placeId}`,
           instagram: link.instagram || null,
           videoPath: link.videoPath || null,
-          discordInvite: link.discordInvite || null
-        })
-        
-        console.log(`[Roblox] ✅ ${link.name}: ${stats.playing} jogando`)
-      } else {
-        console.log(`[Roblox] ❌ Falha ao buscar stats: ${link.name}`)
+          discordInvite: link.discordInvite || null,
+          offline: !stats
+        }
+      } catch (err) {
+        return {
+          id: placeId,
+          placeId,
+          universeId: null,
+          name: link.name,
+          description: "",
+          playing: 0,
+          visits: 0,
+          favorites: 0,
+          favoritedCount: 0,
+          maxPlayers: 50,
+          icon: null,
+          thumbnail: (link as any).thumbnailUrl || null,
+          url: link.serverUrl || `https://www.roblox.com/games/${placeId}`,
+          instagram: link.instagram || null,
+          videoPath: link.videoPath || null,
+          discordInvite: link.discordInvite || null,
+          offline: true
+        }
       }
     }
 
-    // 4. PROCESSAR SERVIDORES FIVEM
-    const fivemServers: any[] = []
-    let fivemTotalPlayers = 0
+    const robloxGames = await Promise.all(robloxLinks.map(processRobloxLink))
+    robloxTotalPlayers = robloxGames.reduce((sum, g) => sum + (g.playing || 0), 0)
 
-    for (const link of fivemLinks) {
+    // 4. PROCESSAR SERVIDORES FIVEM
+    async function processFivemLink(link: any) {
       const code = link.serverCode
-      console.log(`[FiveM] Processando: ${link.name} (${code}) IP: ${link.serverIp || 'N/A'}:${link.serverPort || 'N/A'}`)
-      
       const stats = await fetchFivemServerWithFallback(code, link.serverIp, link.serverPort)
-      
       const players = stats?.players || 0
-      fivemTotalPlayers += players
-      
-      // SEMPRE usar o serverCode como fonte de verdade para a URL de conexão
-      // (evita bug quando o cliente muda o código mas a serverUrl antiga fica no banco)
       const connectUrl = `https://cfx.re/join/${code}`
-      
-      fivemServers.push({
-        code: code,
+
+      return {
+        code,
         name: link.name,
         game: link.game,
         players,
@@ -431,17 +485,19 @@ export async function GET() {
         online: stats?.online || false,
         hostname: stats?.hostname || link.name,
         url: connectUrl,
-        connectUrl: connectUrl,
+        connectUrl,
         instagram: link.instagram || null,
         discord: link.discordInvite || null,
         video: link.videoPath || null,
         thumbnail: (link as any).thumbnailUrl || null
-      })
-      
-      console.log(`[FiveM] ✅ ${link.name}: ${players} jogadores`)
+      }
     }
 
+    const fivemServers = await Promise.all(fivemLinks.map(processFivemLink))
+    const fivemTotalPlayers = fivemServers.reduce((sum, s) => sum + (s.players || 0), 0)
+
     // 5. MONTAR RESULTADO FINAL
+    const group = await groupPromise
     const totalPlayers = robloxTotalPlayers + fivemTotalPlayers
 
     const result = {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { invalidateGamesCache } from "@/app/api/games-stats/route"
 
 // GET - Buscar um jogo específico
 export async function GET(
@@ -59,6 +60,7 @@ export async function PUT(
       }
     })
     
+    invalidateGamesCache()
     return NextResponse.json(updated)
   } catch (error) {
     console.error("Erro ao atualizar game link:", error)
@@ -86,6 +88,7 @@ export async function DELETE(
       where: { id }
     })
     
+    invalidateGamesCache()
     return NextResponse.json({ success: true, message: "Jogo excluído com sucesso" })
   } catch (error) {
     console.error("Erro ao excluir game link:", error)
