@@ -528,7 +528,9 @@ function GameModal({
         ...prev,
         name: data.name || prev.name,
         serverUrl: data.url || prev.serverUrl,
-        thumbnailUrl: data.thumbnail || prev.thumbnailUrl
+        thumbnailUrl: data.thumbnail || prev.thumbnailUrl,
+        // Se o lookup resolveu o Place ID real, usa ele como serverCode
+        serverCode: data.resolvedPlaceId || prev.serverCode
       }))
       
       toast({ title: "✅ Jogo encontrado!" })
@@ -640,12 +642,12 @@ function GameModal({
           
           {/* ID + Lookup */}
           <div className="space-y-2">
-            <Label>{isRoblox ? "Universe ID do Jogo" : "Código do Servidor FiveM"}</Label>
+            <Label>{isRoblox ? "ID do Jogo (Place ID ou Universe ID)" : "Código do Servidor FiveM"}</Label>
             <div className="flex gap-2">
               <Input
                 value={formData.serverCode}
                 onChange={(e) => setFormData(prev => ({ ...prev, serverCode: e.target.value }))}
-                placeholder={isRoblox ? "Ex: 4793377607" : "Ex: r4z8dg"}
+                placeholder={isRoblox ? "Ex: 76149317725679 (da URL do jogo)" : "Ex: r4z8dg"}
                 className="font-mono text-lg"
               />
               <Button 
@@ -803,7 +805,12 @@ export default function LinksJogosPage() {
         const stats: Record<string, any> = {}
         
         data.roblox?.games?.forEach((game: any) => {
-          const link = links.find(l => l.serverCode === game.universeId)
+          // Match por placeId, universeId ou id — serverCode pode ser qualquer um
+          const link = links.find(l => 
+            l.serverCode === game.placeId || 
+            l.serverCode === game.universeId || 
+            l.serverCode === game.id
+          )
           if (link) {
             stats[link.id] = { playing: game.playing, visits: game.visits, thumbnail: game.thumbnail, icon: game.icon }
           }

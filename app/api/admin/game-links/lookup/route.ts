@@ -1,44 +1,92 @@
 import { NextResponse } from "next/server"
 
-// Buscar dados de jogo Roblox
-async function lookupRoblox(universeId: string) {
+const ROBLOX_HEADERS = { 'Accept': 'application/json', 'User-Agent': 'Galorys-Website/1.0' }
+
+// Converte Place ID para Universe ID
+async function placeIdToUniverseId(placeId: string): Promise<string | null> {
   try {
-    const statsResponse = await fetch(
-      `https://games.roblox.com/v1/games?universeIds=${universeId}`,
-      { headers: { 'Accept': 'application/json', 'User-Agent': 'Galorys-Website/1.0' } }
+    const resp = await fetch(
+      `https://apis.roblox.com/universes/v1/places/${placeId}/universe`,
+      { headers: ROBLOX_HEADERS }
     )
-    
-    if (!statsResponse.ok) return { error: "Jogo não encontrado no Roblox" }
-    
-    const statsData = await statsResponse.json()
-    const game = statsData.data?.[0]
-    
-    if (!game) return { error: "Jogo não encontrado no Roblox" }
-    
-    // Ícone
+    if (!resp.ok) return null
+    const data = await resp.json()
+    return data?.universeId?.toString() || null
+  } catch {
+    return null
+  }
+}
+
+// Busca dados do jogo pelo Universe ID (ja resolvido)
+async function fetchGameByUniverse(universeId: string) {
+  const statsResponse = await fetch(
+    `https://games.roblox.com/v1/games?universeIds=${universeId}`,
+    { headers: ROBLOX_HEADERS }
+  )
+  if (!statsResponse.ok) return null
+  const statsData = await statsResponse.json()
+  return statsData.data?.[0] || null
+}
+
+// Buscar dados de jogo Roblox — aceita Place ID ou Universe ID
+async function lookupRoblox(inputId: string) {
+  try {
+    // Estrategia: tenta como Place ID primeiro (mais comum, vem da URL do jogo)
+    // Se falhar, tenta como Universe ID direto
+    let universeId: string | null = null
+    let wasPlaceId = false
+
+    // Tentativa 1: inputId eh Place ID → converter para Universe ID
+    const converted = await placeIdToUniverseId(inputId)
+    if (converted) {
+      universeId = converted
+      wasPlaceId = true
+    }
+
+    // Tentativa 2: inputId ja eh Universe ID
+    if (!universeId) {
+      const directGame = await fetchGameByUniverse(inputId)
+      if (directGame) {
+        universeId = inputId
+      }
+    }
+
+    if (!universeId) {
+      return { error: "Jogo nao encontrado no Roblox. Verifique se o ID esta correto." }
+    }
+
+    const game = await fetchGameByUniverse(universeId)
+    if (!game) return { error: "Jogo nao encontrado no Roblox" }
+
+    // O Place ID real do jogo (rootPlaceId da API do Roblox)
+    const placeId = game.rootPlaceId?.toString() || (wasPlaceId ? inputId : null)
+
+    // Icone
     let icon: string | null = null
     try {
       const iconResp = await fetch(
-        `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=Png`
+        `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=Png`,
+        { headers: ROBLOX_HEADERS }
       )
       if (iconResp.ok) {
         const iconData = await iconResp.json()
         icon = iconData.data?.[0]?.imageUrl || null
       }
     } catch {}
-    
+
     // Thumbnail
     let thumbnail: string | null = null
     try {
       const thumbResp = await fetch(
-        `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&size=768x432&format=Png&countPerUniverse=1`
+        `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&size=768x432&format=Png&countPerUniverse=1`,
+        { headers: ROBLOX_HEADERS }
       )
       if (thumbResp.ok) {
         const thumbData = await thumbResp.json()
         thumbnail = thumbData.data?.[0]?.thumbnails?.[0]?.imageUrl || null
       }
     } catch {}
-    
+
     return {
       found: true,
       platform: "roblox",
@@ -50,8 +98,11 @@ async function lookupRoblox(universeId: string) {
       maxPlayers: game.maxPlayers || 50,
       icon,
       thumbnail,
-      rootPlaceId: game.rootPlaceId?.toString(),
-      url: `https://www.roblox.com/games/${game.rootPlaceId || universeId}`
+      rootPlaceId: placeId,
+      universeId,
+      // serverCode deve ser o Place ID (padrao do games-stats)
+      resolvedPlaceId: placeId,
+      url: `https://www.roblox.com/games/${placeId || inputId}`
     }
   } catch (error) {
     return { error: "Erro ao buscar dados do Roblox" }

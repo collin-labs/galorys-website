@@ -89,37 +89,34 @@ export async function GET(request: NextRequest) {
     }
 
     // Tentar buscar configuração do banco de dados
-    let gameIds: { key: string; id: string }[] = [...DEFAULT_GAMES]
+    let gameIds: { key: string; id: string }[] = []
     let groupId = DEFAULT_GROUP_ID
     
     try {
-      // Buscar Game IDs do banco
-      const dbGameLink1 = await prisma.gameLink.findUnique({
-        where: { game: "roblox" }
+      // Buscar TODOS os jogos Roblox ativos do banco (dinamico)
+      const allLinks = await prisma.gameLink.findMany({
+        where: { active: true },
+        orderBy: { createdAt: 'asc' }
       })
       
-      const dbGameLink2 = await prisma.gameLink.findUnique({
-        where: { game: "roblox-2" }
-      })
+      const robloxLinks = allLinks.filter(l => l.game.startsWith("roblox") && l.game !== "roblox-group")
       
-      if (dbGameLink1?.serverCode) {
-        gameIds[0] = { key: "roblox", id: dbGameLink1.serverCode }
-      }
-      
-      if (dbGameLink2?.serverCode) {
-        gameIds[1] = { key: "roblox-2", id: dbGameLink2.serverCode }
+      if (robloxLinks.length > 0) {
+        gameIds = robloxLinks.map(l => ({ key: l.game, id: l.serverCode }))
+      } else {
+        // Fallback para IDs padrao se nao tem nada no banco
+        gameIds = [...DEFAULT_GAMES]
       }
       
       // Buscar Group ID (entrada "roblox-group")
-      const dbGroupLink = await prisma.gameLink.findUnique({
-        where: { game: "roblox-group" }
-      })
+      const dbGroupLink = allLinks.find(l => l.game === "roblox-group")
       
       if (dbGroupLink?.serverCode) {
         groupId = dbGroupLink.serverCode
       }
     } catch (dbError) {
       console.log("Usando IDs padrão do Roblox (banco não disponível)")
+      gameIds = [...DEFAULT_GAMES]
     }
 
     // Buscar dados do grupo
