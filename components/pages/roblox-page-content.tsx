@@ -701,11 +701,13 @@ export function RobloxPageContent() {
   const [robloxData, setRobloxData] = useState<RobloxData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasFetchedRef = useRef(false)
 
   useEffect(() => {
     async function fetchRobloxData() {
       try {
-        setLoading(true)
+        // Loading visivel so na primeira carga, refreshes sao silenciosos
+        if (!hasFetchedRef.current) setLoading(true)
         // Usar API unificada (mesma do live-counter)
         const response = await fetch("/api/games-stats")
         if (!response.ok) throw new Error("Falha ao carregar")
@@ -755,7 +757,10 @@ export function RobloxPageContent() {
         setError("Não foi possível carregar os dados do Roblox")
         console.error(err)
       } finally {
-        setLoading(false)
+        if (!hasFetchedRef.current) {
+          setLoading(false)
+          hasFetchedRef.current = true
+        }
       }
     }
 

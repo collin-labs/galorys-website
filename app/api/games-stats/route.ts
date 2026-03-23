@@ -31,8 +31,8 @@ export function invalidateGamesCache() {
 
 // ==================== ROBLOX: CONVERTER PLACE ID → UNIVERSE ID ====================
 
-// Fetch com timeout de 5s para evitar travamentos
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 5000) {
+// Fetch com timeout para evitar travamentos
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 8000) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -56,7 +56,26 @@ async function convertPlaceIdToUniverseId(placeId: string): Promise<string | nul
   }
 
   try {
-    // Metodo 1 (principal): API publica sem auth
+    // Metodo 1: testar se ja eh Universe ID direto (mais rapido, 1 request so)
+    const testResp = await fetchWithTimeout(
+      `https://games.roblox.com/v1/games?universeIds=${placeId}`,
+      { headers }
+    )
+    
+    if (testResp.ok) {
+      const testData = await testResp.json()
+      if (testData?.data?.[0]?.id) {
+        placeToUniverseCache[placeId] = placeId
+        console.log(`[Roblox] ${placeId} JA era Universe ID`)
+        return placeId
+      }
+    }
+  } catch (err) {
+    console.log(`[Roblox] Metodo 1 (Universe ID direto) timeout/erro para ${placeId}`)
+  }
+
+  try {
+    // Metodo 2: converter Place ID → Universe ID via API publica
     const primaryResp = await fetchWithTimeout(
       `https://apis.roblox.com/universes/v1/places/${placeId}/universe`,
       { headers }
@@ -73,11 +92,11 @@ async function convertPlaceIdToUniverseId(placeId: string): Promise<string | nul
       }
     }
   } catch (err) {
-    console.log(`[Roblox] Metodo 1 timeout/erro para ${placeId}`)
+    console.log(`[Roblox] Metodo 2 (Place→Universe) timeout/erro para ${placeId}`)
   }
 
   try {
-    // Metodo 2 (fallback): multiget-place-details (pode exigir auth)
+    // Metodo 3 (fallback): multiget-place-details (pode exigir auth)
     const fallbackResp = await fetchWithTimeout(
       `https://games.roblox.com/v1/games/multiget-place-details?placeIds=${placeId}`,
       { headers }
@@ -94,26 +113,7 @@ async function convertPlaceIdToUniverseId(placeId: string): Promise<string | nul
       }
     }
   } catch (err) {
-    console.log(`[Roblox] Metodo 2 timeout/erro para ${placeId}`)
-  }
-
-  try {
-    // Metodo 3: talvez o cliente colou um Universe ID direto
-    const testResp = await fetchWithTimeout(
-      `https://games.roblox.com/v1/games?universeIds=${placeId}`,
-      { headers }
-    )
-    
-    if (testResp.ok) {
-      const testData = await testResp.json()
-      if (testData?.data?.[0]?.id) {
-        placeToUniverseCache[placeId] = placeId
-        console.log(`[Roblox] ${placeId} JA era Universe ID`)
-        return placeId
-      }
-    }
-  } catch (err) {
-    console.log(`[Roblox] Metodo 3 timeout/erro para ${placeId}`)
+    console.log(`[Roblox] Metodo 3 (multiget) timeout/erro para ${placeId}`)
   }
     
   console.log(`[Roblox] Falha total ao converter: ${placeId}`)
