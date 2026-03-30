@@ -35,7 +35,7 @@ const faqs = [
   },
   {
     question: "O que são as comunidades Roblox e GTA RP?",
-    answer: "Além dos times competitivos, a Galorys mantém comunidades de jogadores no Roblox e servidores de GTA RP (KUSH PVP e FLOW RP). São espaços para fãs se divertirem e interagirem com outros membros da comunidade."
+    answer: "Além dos times competitivos, a Galorys mantém comunidades de jogadores no Roblox e servidores de GTA RP. São espaços para fãs se divertirem e interagirem com outros membros da comunidade."
   },
 ]
 

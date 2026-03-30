@@ -146,6 +146,7 @@ function GameTabs({
         <span className="relative z-10 flex items-center gap-2">
           <Globe className="w-5 h-5" />
           GTA RP
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20 leading-none">18+</span>
         </span>
         {activeTab === "gtarp" && (
           <motion.div
@@ -432,27 +433,29 @@ function GtaRpContent({
   }
 
   const totalPlayers = fivemData?.totalPlayers || 0
-  const servers = fivemData?.servers || []
-  // Pega os 2 primeiros servidores cadastrados (em vez de códigos hardcoded)
-  const kushServer = servers[0]
-  const flowServer = servers[1]
-  
-  // URLs dinâmicas do banco (com fallbacks originais para não quebrar layout)
-  const kushConnectUrl = kushServer?.connectUrl || "https://cfx.re/join/r4z8dg"
-  const kushInstagram = kushServer?.instagram || "@joguekush"
-  const flowConnectUrl = flowServer?.connectUrl || "https://cfx.re/join/3emg7o"
-  const flowInstagram = flowServer?.instagram || "@flowrpgg"
+  const activeServers = (fivemData?.servers || []).filter(s => s)
 
+  // Stats dinamicos — so mostra servidores que existem no banco
   const stats = [
     { icon: Users, value: totalPlayers, label: "Jogadores Online", live: true },
-    { icon: Gamepad2, value: kushServer?.players || 0, label: kushServer?.name || "KUSH PVP" },
-    { icon: Globe, value: flowServer?.players || 0, label: flowServer?.name || "Flow RP" },
+    ...activeServers.map(s => ({
+      icon: Gamepad2,
+      value: s.players || 0,
+      label: s.name || "Servidor",
+      live: false,
+    }))
+  ]
+
+  // Cores para os cards de cada servidor (ciclo se tiver mais de 2)
+  const serverColors = [
+    { border: "border-orange-500/20 hover:border-orange-500/40", shadow: "hover:shadow-[0_0_30px_rgba(249,115,22,0.15)]", btn: "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700", btnShadow: "shadow-[0_0_15px_rgba(249,115,22,0.3)]" },
+    { border: "border-green-500/20 hover:border-green-500/40", shadow: "hover:shadow-[0_0_30px_rgba(34,197,94,0.15)]", btn: "from-green-500 to-green-600 hover:from-green-600 hover:to-green-700", btnShadow: "shadow-[0_0_15px_rgba(34,197,94,0.3)]" },
   ]
 
   return (
     <div className="glass rounded-3xl overflow-hidden bg-galorys-surface/80 border border-orange-500/20 backdrop-blur-xl">
       {/* Stats */}
-      <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
+      <div className={`grid divide-x divide-border border-b border-border ${stats.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
         {stats.map((stat, index) => (
           <motion.div 
             key={stat.label} 
@@ -486,7 +489,7 @@ function GtaRpContent({
         <div className="relative aspect-video rounded-2xl overflow-hidden bg-galorys-base mb-6 group">
           <video
             ref={videoRef}
-            src="/videos/video-flow.mp4"
+            src={activeServers[0]?.videoPath || "/videos/video-kush.mp4"}
             className="w-full h-full object-cover"
             autoPlay
             loop
@@ -526,95 +529,51 @@ function GtaRpContent({
           </div>
         </div>
 
-        {/* Servers Info - 2 Servidores */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          {/* KUSH Server */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            whileHover={{ scale: 1.02, y: -2 }}
-            className="p-4 rounded-xl bg-galorys-base/50 border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300 hover:shadow-[0_0_30px_rgba(249,115,22,0.15)]"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-foreground text-sm md:text-base">{kushServer?.name || "KUSH PVP"}</h3>
-              {kushServer?.online && (
-                <span className="flex items-center gap-1 text-xs text-green-500">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  Online
-                </span>
-              )}
-            </div>
-            <p className="text-xs md:text-sm text-muted-foreground mb-3">
-              {formatNumber(kushServer?.players || 0)} / {kushServer?.maxPlayers || 128} jogadores
-            </p>
-            <div className="flex gap-2">
-              <a 
-                href={kushConnectUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex-1"
+        {/* Servers Info - Dinâmico baseado no admin */}
+        <div className={`grid grid-cols-1 ${activeServers.length > 1 ? 'sm:grid-cols-2' : ''} gap-4 mb-6`}>
+          {activeServers.map((srv, index) => {
+            const colors = serverColors[index % serverColors.length]
+            const connectUrl = srv.connectUrl || "#"
+            const igHandle = srv.instagram || ""
+            return (
+              <motion.div
+                key={srv.code || srv.name || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + index * 0.1 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                className={`p-4 rounded-xl bg-galorys-base/50 border ${colors.border} transition-all duration-300 ${colors.shadow}`}
               >
-                <Button size="sm" className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs shadow-[0_0_15px_rgba(249,115,22,0.3)]">
-                  <Play className="w-3 h-3 mr-1" />
-                  Conectar
-                </Button>
-              </a>
-              <a 
-                href={`https://instagram.com/${kushInstagram.replace("@", "")}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <Button size="sm" variant="outline" className="border-pink-500/50 text-pink-500 hover:bg-pink-500/10">
-                  <Instagram className="w-3 h-3" />
-                </Button>
-              </a>
-            </div>
-          </motion.div>
-
-          {/* Flow Server */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            whileHover={{ scale: 1.02, y: -2 }}
-            className="p-4 rounded-xl bg-galorys-base/50 border border-green-500/20 hover:border-green-500/40 transition-all duration-300 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)]"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-foreground text-sm md:text-base">{flowServer?.name || "Flow RP"}</h3>
-              {flowServer?.online && (
-                <span className="flex items-center gap-1 text-xs text-green-500">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  Online
-                </span>
-              )}
-            </div>
-            <p className="text-xs md:text-sm text-muted-foreground mb-3">
-              {formatNumber(flowServer?.players || 0)} / {flowServer?.maxPlayers || 256} jogadores
-            </p>
-            <div className="flex gap-2">
-              <a 
-                href={flowConnectUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex-1"
-              >
-                <Button size="sm" className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs shadow-[0_0_15px_rgba(34,197,94,0.3)]">
-                  <Play className="w-3 h-3 mr-1" />
-                  Conectar
-                </Button>
-              </a>
-              <a 
-                href={`https://instagram.com/${flowInstagram.replace("@", "")}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <Button size="sm" variant="outline" className="border-pink-500/50 text-pink-500 hover:bg-pink-500/10">
-                  <Instagram className="w-3 h-3" />
-                </Button>
-              </a>
-            </div>
-          </motion.div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-foreground text-sm md:text-base">{srv.name}</h3>
+                  {srv.online && (
+                    <span className="flex items-center gap-1 text-xs text-green-500">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      Online
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs md:text-sm text-muted-foreground mb-3">
+                  {formatNumber(srv.players || 0)} / {srv.maxPlayers || 128} jogadores
+                </p>
+                <div className="flex gap-2">
+                  <a href={connectUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+                    <Button size="sm" className={`w-full bg-gradient-to-r ${colors.btn} text-white text-xs ${colors.btnShadow}`}>
+                      <Play className="w-3 h-3 mr-1" />
+                      Conectar
+                    </Button>
+                  </a>
+                  {igHandle && (
+                    <a href={`https://instagram.com/${igHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="border-pink-500/50 text-pink-500 hover:bg-pink-500/10">
+                        <Instagram className="w-3 h-3" />
+                      </Button>
+                    </a>
+                  )}
+                </div>
+              </motion.div>
+            )
+          })}
         </div>
 
         {/* CTA Principal */}

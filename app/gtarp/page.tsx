@@ -4,7 +4,7 @@ import { GtaRpPageContent } from "@/components/pages/gtarp-page-content"
 
 export const metadata = {
   title: "GTA RP | Galorys eSports",
-  description: "Entre nos servidores de GTA RP da Galorys. KUSH PVP e Flow RP - Ação, roleplay e diversão garantidos!",
+  description: "Entre nos servidores de GTA RP da Galorys. Ação, roleplay e diversão garantidos com a comunidade!",
 }
 
 export default function GtaRpPage() {

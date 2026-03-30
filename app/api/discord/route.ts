@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-// Comunidades Discord padrão (fallback)
-const DEFAULT_COMMUNITIES = [
-  { code: "flowrp", name: "Flow RP", game: "gtarp-flow" },
-  { code: "kushpvp", name: "KUSH PVP", game: "gtarp-kush" },
-]
-
 // Cache para não sobrecarregar a API do Discord
 let cache: {
   data: any
@@ -14,6 +8,11 @@ let cache: {
 } | null = null
 
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos (Discord tem rate limits mais rígidos)
+
+// Invalida cache quando admin altera jogos
+export function invalidateDiscordCache() {
+  cache = null
+}
 
 // Função para buscar dados de um convite do Discord
 async function fetchDiscordInvite(inviteCode: string) {
@@ -98,8 +97,8 @@ export async function GET() {
       return NextResponse.json(cache.data)
     }
 
-    // Tentar buscar configurações do banco de dados
-    let communities = DEFAULT_COMMUNITIES
+    // Buscar comunidades APENAS do banco — sem fallback hardcoded
+    let communities: { code: string; name: string; game: string }[] = []
 
     try {
       const dbLinks = await prisma.gameLink.findMany({
@@ -109,7 +108,6 @@ export async function GET() {
         }
       })
 
-      // Pegar discordInvite do banco se existir
       if (dbLinks.length > 0) {
         communities = dbLinks
           .filter(link => link.discordInvite)
@@ -118,14 +116,23 @@ export async function GET() {
             name: link.name,
             game: link.game
           }))
-        
-        // Se não tem discord configurado, usar os padrões
-        if (communities.length === 0) {
-          communities = DEFAULT_COMMUNITIES
-        }
       }
     } catch (dbError) {
-      console.log("Usando comunidades padrão (banco não disponível)")
+      console.error("[Discord] Erro ao buscar GameLink:", dbError)
+    }
+
+    // Se nenhum servidor GTA RP com Discord configurado, retornar vazio
+    if (communities.length === 0) {
+      const emptyResult = {
+        communities: [],
+        totalMembers: 0,
+        totalOnline: 0,
+        allOnline: false,
+        communityCount: 0,
+        fetchedAt: new Date().toISOString(),
+      }
+      cache = { data: emptyResult, timestamp: Date.now() }
+      return NextResponse.json(emptyResult)
     }
 
     // Buscar dados de todas as comunidades em paralelo
@@ -170,25 +177,13 @@ export async function GET() {
       })
     }
 
-    // Retorno de fallback
+    // Retorno de fallback vazio (sem hardcode)
     return NextResponse.json({
-      communities: DEFAULT_COMMUNITIES.map(c => ({
-        ...c,
-        memberCount: 0,
-        onlineCount: 0,
-        guildId: null,
-        guildName: c.name,
-        icon: null,
-        banner: null,
-        inviteUrl: `https://discord.gg/${c.code}`,
-        verified: false,
-        partnered: false,
-        online: false
-      })),
+      communities: [],
       totalMembers: 0,
       totalOnline: 0,
       allOnline: false,
-      communityCount: 2,
+      communityCount: 0,
       fetchedAt: new Date().toISOString(),
       error: "Falha ao buscar dados do Discord"
     })

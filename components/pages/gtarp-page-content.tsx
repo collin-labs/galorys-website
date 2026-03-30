@@ -47,6 +47,8 @@ interface DiscordCommunity {
   guildName: string
   icon: string | null
   banner: string | null
+  splash: string | null
+  description: string | null
   inviteUrl: string
   verified: boolean
   partnered: boolean
@@ -272,10 +274,11 @@ function MobileServersCarousel({
   const carouselRef = useRef<HTMLDivElement>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
 
+  // Montar lista dinamica — so mostra servidores que existem no banco
   const servers = [
-    { server: kushServer, discord: kushDiscord, isVertical: true },
-    { server: flowServer, discord: flowDiscord, isVertical: false }
-  ]
+    kushServer ? { server: kushServer, discord: kushDiscord, isVertical: true } : null,
+    flowServer ? { server: flowServer, discord: flowDiscord, isVertical: false } : null,
+  ].filter((s): s is { server: FivemServer; discord: DiscordCommunity | undefined; isVertical: boolean } => s !== null)
 
   const checkScroll = () => {
     if (carouselRef.current) {
@@ -385,27 +388,27 @@ function ServerCard({
   loading: boolean
   discordLoading: boolean
 }) {
-  const name = server?.name || (isVertical ? "KUSH PVP" : "Flow RP")
+  const name = server?.name || "Servidor"
   const players = server?.players || 0
   const online = server?.online || false
-  const connectUrl = server?.connectUrl || `https://cfx.re/join/${isVertical ? "r4z8dg" : "3emg7o"}`
+  const connectUrl = server?.connectUrl || "#"
   
-  // Dados dinâmicos do banco
-  const videoPath = server?.videoPath || (isVertical ? "/videos/video-kush.mp4" : "/videos/video-flow.mp4")
-  const instagram = server?.instagram || (isVertical ? "@joguekush" : "@flowrpgg")
+  // Dados do banco — sem fallback hardcoded
+  const videoPath = server?.videoPath || ""
+  const instagram = server?.instagram || ""
   
   const memberCount = discord?.memberCount || 0
   const onlineCount = discord?.onlineCount || 0
-  const discordUrl = discord?.inviteUrl || `https://discord.gg/${isVertical ? "kushpvp" : "flowrp"}`
+  const discordUrl = discord?.inviteUrl || "#"
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="group"
+      className="group h-full"
     >
-      <div className="relative bg-card/50 dark:bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden border border-border/50 dark:border-orange-500/20 hover:border-orange-500/50 transition-all duration-500 hover:shadow-[0_0_60px_rgba(249,115,22,0.15)]">
+      <div className="relative h-full bg-card/50 dark:bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden border border-border/50 dark:border-orange-500/20 hover:border-orange-500/50 transition-all duration-500 hover:shadow-[0_0_60px_rgba(249,115,22,0.15)]">
         {/* Glow effect on hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/5 group-hover:to-orange-600/5 transition-all duration-500 pointer-events-none" />
         
@@ -644,8 +647,8 @@ function DiscordCommunitiesSection({
   const kushDiscord = discordData?.communities.find(c => c.game === "gtarp-kush" || c.code === "kushpvp")
   const flowDiscord = discordData?.communities.find(c => c.game === "gtarp-flow" || c.code === "flowrp")
 
-  const communities = [
-    {
+  const allCommunities = [
+    kushDiscord ? {
       data: kushDiscord,
       name: "KUSH PVP",
       description: "Servidor PVP com ação intensa e combates épicos",
@@ -653,8 +656,8 @@ function DiscordCommunitiesSection({
       fallbackCode: "kushpvp", 
       icon: <Zap className="w-6 h-6" />,
       gradient: "from-emerald-500 to-green-600"
-    },
-    {
+    } : null,
+    flowDiscord ? {
       data: flowDiscord,
       name: "Flow RP",
       description: "Servidor de Roleplay com foco em histórias e narrativas imersivas",
@@ -662,8 +665,10 @@ function DiscordCommunitiesSection({
       fallbackCode: "flowrp",
       icon: <Shield className="w-6 h-6" />,
       gradient: "from-[#5865F2] to-indigo-600"
-    }
+    } : null,
   ]
+
+  const communities = allCommunities.filter((c): c is NonNullable<typeof c> => c !== null)
 
   return (
     <motion.div
@@ -1248,9 +1253,22 @@ export function GtaRpPageContent() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4">
             GALORYS NO <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">GTA RP</span>
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg mb-8">
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg mb-6">
             Entre nos melhores servidores de GTA RP do Brasil. Ação, roleplay e diversão garantidos com a comunidade Galorys!
           </p>
+
+          {/* Aviso 18+ - Lei 15.211/2025 (ECA Digital) */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border border-orange-500/20 bg-orange-500/5 backdrop-blur-sm max-w-2xl mx-auto"
+          >
+            <span className="shrink-0 w-8 h-8 rounded-lg bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-xs font-bold text-orange-400">18+</span>
+            <p className="text-xs text-muted-foreground text-left leading-relaxed">
+              GTA V possui classificação indicativa <strong className="text-orange-400/90">não recomendado para menores de 18 anos</strong> (Ministério da Justiça). Em conformidade com a Lei nº 15.211/2025 (ECA Digital), este conteúdo é destinado exclusivamente ao público adulto.
+            </p>
+          </motion.div>
         </motion.div>
 
         {/* Community Highlight Stats */}
@@ -1282,54 +1300,255 @@ export function GtaRpPageContent() {
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Nossos Jogos</h2>
-              <p className="text-xs sm:text-sm text-muted-foreground">2 servidores disponíveis</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{fivemData?.servers?.length || 0} {(fivemData?.servers?.length || 0) === 1 ? 'servidor disponível' : 'servidores disponíveis'}</p>
             </div>
           </div>
         </motion.div>
 
         {/* ========================================
-            MOBILE/TABLET: Carrossel (< lg = 1024px)
+            LAYOUT ADAPTATIVO
+            1 servidor: ServerCard + DiscordCard lado a lado
+            2+ servidores: layout separado (cards + seção discord)
             ======================================== */}
-        <div className="lg:hidden mb-12">
-          <MobileServersCarousel
-            kushServer={kushServer}
-            flowServer={flowServer}
-            kushDiscord={kushDiscord}
-            flowDiscord={flowDiscord}
-            fivemLoading={fivemLoading}
-            discordLoading={discordLoading}
-          />
-        </div>
 
-        {/* ========================================
-            DESKTOP: Grid Original (>= lg = 1024px)
-            100% IGUAL AO ORIGINAL
-            ======================================== */}
-        <div className="hidden lg:grid lg:grid-cols-2 gap-8 mb-12">
-          {/* KUSH PVP */}
-          <ServerCard
-            server={kushServer}
-            discord={kushDiscord}
-            isVertical={true}
-            loading={fivemLoading}
-            discordLoading={discordLoading}
-          />
+        {(() => {
+          const serverCount = [kushServer, flowServer].filter(Boolean).length
+          const singleServer = serverCount === 1
+          const activeServer = kushServer || flowServer
+          const activeDiscord = kushServer ? kushDiscord : flowDiscord
+          const serverName = activeServer?.name || "Servidor"
 
-          {/* Flow RP */}
-          <ServerCard
-            server={flowServer}
-            discord={flowDiscord}
-            isVertical={false}
-            loading={fivemLoading}
-            discordLoading={discordLoading}
-          />
-        </div>
+          // Card Discord enriquecido para single-server
+          const RichDiscordCard = () => {
+            if (!activeDiscord) return null
+            const members = activeDiscord.memberCount || 0
+            const online = activeDiscord.onlineCount || 0
+            const activePercent = members > 0 ? ((online / members) * 100).toFixed(1) : "0"
+            const guildName = activeDiscord.guildName || serverName
+            const inviteUrl = activeDiscord.inviteUrl || `https://discord.gg/${activeDiscord.code}`
+            const banner = activeDiscord.banner || activeDiscord.splash || null
+            const guildIcon = activeDiscord.icon
+            const guildDesc = activeDiscord.description || null
+            const igHandle = activeServer?.instagram || null
+            const fivemPlayers = activeServer?.players || 0
+            const fivemMax = activeServer?.maxPlayers || 128
+            const connectUrl = activeServer?.connectUrl || "#"
 
-        {/* Discord Communities Section - Cards individuais */}
-        <DiscordCommunitiesSection 
-          discordData={discordData}
-          loading={discordLoading}
-        />
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="h-full"
+              >
+                <div className="relative h-full bg-card/50 dark:bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden border border-[#5865F2]/20 hover:border-[#5865F2]/50 transition-all duration-500 hover:shadow-[0_0_60px_rgba(88,101,242,0.15)] flex flex-col">
+                  {/* Banner */}
+                  <div className="relative h-28 sm:h-32 overflow-hidden">
+                    {banner ? (
+                      <img src={banner} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-[#5865F2] to-indigo-600" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
+                    <motion.div
+                      className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-xl"
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+                      transition={{ duration: 5, repeat: Infinity }}
+                    />
+                  </div>
+
+                  <div className="relative z-10 p-5 sm:p-6 flex flex-col flex-1">
+                    {/* Icon + Name */}
+                    <div className="flex items-start gap-4 -mt-12 mb-4">
+                      <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-[#5865F2] to-indigo-600 flex items-center justify-center shadow-lg border-4 border-background dark:border-[#0B0B0F] overflow-hidden shrink-0">
+                        {guildIcon ? (
+                          <img src={guildIcon} alt={guildName} className="w-full h-full object-cover" />
+                        ) : (
+                          <MessageCircle className="w-7 h-7 text-white" />
+                        )}
+                      </div>
+                      <div className="pt-12 min-w-0">
+                        <h3 className="text-xl font-bold text-foreground truncate">{guildName}</h3>
+                        <p className="text-sm text-muted-foreground">Comunidade oficial</p>
+                      </div>
+                    </div>
+
+                    {/* Guild Description */}
+                    {guildDesc && (
+                      <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-3">{guildDesc}</p>
+                    )}
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <div className="bg-background/50 dark:bg-white/5 rounded-xl p-3 text-center">
+                        <Users className="w-4 h-4 text-[#5865F2] mx-auto mb-1" />
+                        <p className="text-lg sm:text-xl font-bold text-foreground">{formatNumber(members)}</p>
+                        <p className="text-[10px] text-muted-foreground">Membros</p>
+                      </div>
+                      <div className="bg-background/50 dark:bg-white/5 rounded-xl p-3 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                          <Radio className="w-4 h-4 text-green-500" />
+                        </div>
+                        <p className="text-lg sm:text-xl font-bold text-foreground">{formatNumber(online)}</p>
+                        <p className="text-[10px] text-muted-foreground">Online</p>
+                      </div>
+                      <div className="bg-background/50 dark:bg-white/5 rounded-xl p-3 text-center">
+                        <Zap className="w-4 h-4 text-orange-500 mx-auto mb-1" />
+                        <p className="text-lg sm:text-xl font-bold text-foreground">{activePercent}%</p>
+                        <p className="text-[10px] text-muted-foreground">Ativos</p>
+                      </div>
+                    </div>
+
+                    {/* Activity Bar */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] text-muted-foreground">Atividade da comunidade</span>
+                        <span className="text-[11px] font-medium text-green-500">{formatNumber(online)} online agora</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-background/50 dark:bg-white/5 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-[#5865F2] to-green-500"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(parseFloat(activePercent), 100)}%` }}
+                          transition={{ duration: 1.2, delay: 0.5, ease: "easeOut" }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* FiveM Quick Stats */}
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/5 border border-orange-500/15 mb-4">
+                      <div className="w-9 h-9 rounded-lg bg-orange-500/15 flex items-center justify-center shrink-0">
+                        <Gamepad2 className="w-4 h-4 text-orange-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{fivemPlayers} / {fivemMax} jogadores</p>
+                        <p className="text-[11px] text-muted-foreground truncate">Servidor FiveM — {serverName}</p>
+                      </div>
+                      {fivemPlayers > 0 && (
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
+                      )}
+                    </div>
+
+                    {/* Instagram */}
+                    {igHandle && (
+                      <a
+                        href={`https://instagram.com/${igHandle.replace("@", "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-pink-500/5 border border-transparent hover:border-pink-500/15 transition-all duration-300 mb-4"
+                      >
+                        <Instagram className="w-4 h-4 text-pink-500" />
+                        <span className="text-sm text-muted-foreground">{igHandle}</span>
+                        <ExternalLink className="w-3 h-3 text-muted-foreground/50 ml-auto" />
+                      </a>
+                    )}
+
+                    {/* Spacer para empurrar botões pro final */}
+                    <div className="flex-1" />
+
+                    {/* CTAs */}
+                    <div className="space-y-2">
+                      <Button
+                        asChild
+                        className="w-full h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_10px_40px_rgba(88,101,242,0.4)]"
+                      >
+                        <a href={inviteUrl} target="_blank" rel="noopener noreferrer">
+                          <MessageCircle className="w-5 h-5 mr-2" />
+                          Entrar no Discord
+                          <ExternalLink className="w-4 h-4 ml-2" />
+                        </a>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full h-11 border-orange-500/30 text-orange-500 hover:bg-orange-500/10 rounded-xl transition-all duration-300"
+                      >
+                        <a href={connectUrl} target="_blank" rel="noopener noreferrer">
+                          <Play className="w-4 h-4 mr-2" />
+                          Conectar no Servidor
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )
+          }
+
+          if (singleServer && activeServer) {
+            return (
+              <>
+                {/* MOBILE/TABLET (< lg): Stack vertical */}
+                <div className="lg:hidden space-y-6 mb-12">
+                  <ServerCard
+                    server={activeServer}
+                    discord={activeDiscord}
+                    isVertical={true}
+                    loading={fivemLoading}
+                    discordLoading={discordLoading}
+                  />
+                  <RichDiscordCard />
+                </div>
+
+                {/* DESKTOP (>= lg): Side by side, mesma altura */}
+                <div className="hidden lg:grid lg:grid-cols-2 gap-8 mb-12 items-stretch">
+                  <ServerCard
+                    server={activeServer}
+                    discord={activeDiscord}
+                    isVertical={true}
+                    loading={fivemLoading}
+                    discordLoading={discordLoading}
+                  />
+                  <RichDiscordCard />
+                </div>
+              </>
+            )
+          }
+
+          // 2+ servidores: layout original
+          return (
+            <>
+              <div className="lg:hidden mb-12">
+                <MobileServersCarousel
+                  kushServer={kushServer}
+                  flowServer={flowServer}
+                  kushDiscord={kushDiscord}
+                  flowDiscord={flowDiscord}
+                  fivemLoading={fivemLoading}
+                  discordLoading={discordLoading}
+                />
+              </div>
+
+              <div className="hidden lg:grid lg:grid-cols-2 gap-8 mb-12">
+                {kushServer && (
+                  <ServerCard
+                    server={kushServer}
+                    discord={kushDiscord}
+                    isVertical={true}
+                    loading={fivemLoading}
+                    discordLoading={discordLoading}
+                  />
+                )}
+                {flowServer && (
+                  <ServerCard
+                    server={flowServer}
+                    discord={flowDiscord}
+                    isVertical={false}
+                    loading={fivemLoading}
+                    discordLoading={discordLoading}
+                  />
+                )}
+              </div>
+
+              <DiscordCommunitiesSection 
+                discordData={discordData}
+                loading={discordLoading}
+              />
+            </>
+          )
+        })()}
 
         {/* How to Connect Section */}
         <HowToConnect />

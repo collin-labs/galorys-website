@@ -280,20 +280,20 @@ function ServerCardWithVideo({
   loading: boolean
   discordLoading: boolean
 }) {
-  const name = server?.name || (isVertical ? "KUSH PVP" : "Flow RP")
+  const name = server?.name || "Servidor"
   const players = server?.players || 0
   const maxPlayers = server?.maxPlayers || 0
   const online = server?.online || false
-  const connectUrl = server?.url || `https://cfx.re/join/${server?.code || (isVertical ? "r4z8dg" : "3emg7o")}`
+  const connectUrl = server?.url || (server?.code ? `https://cfx.re/join/${server.code}` : "#")
   
-  // Dados dinâmicos do banco
-  const videoPath = server?.videoPath || server?.video || (isVertical ? "/videos/video-kush.mp4" : "/videos/video-flow.mp4")
-  const instagram = server?.instagram || (isVertical ? "@joguekush" : "@flowrpgg")
+  // Dados do banco — sem fallback hardcoded
+  const videoPath = server?.videoPath || server?.video || ""
+  const instagram = server?.instagram || ""
   const discordInvite = server?.discord || server?.discordInvite
   
   const memberCount = discord?.memberCount || 0
   const onlineCount = discord?.onlineCount || 0
-  const discordUrl = discord?.inviteUrl || (discordInvite ? `https://discord.gg/${discordInvite}` : `https://discord.gg/${isVertical ? "kushpvp" : "flowrp"}`)
+  const discordUrl = discord?.inviteUrl || (discordInvite ? `https://discord.gg/${discordInvite}` : "#")
 
   return (
     <motion.div
@@ -450,7 +450,7 @@ function ServerCardWithVideo({
 
           {/* Server Code */}
           <p className="text-center text-xs text-muted-foreground mt-3 font-mono">
-            cfx.re/join/{server?.code || (isVertical ? "r4z8dg" : "3emg7o")}
+            cfx.re/join/{server?.code || "..."}
           </p>
         </div>
       </div>
@@ -469,7 +469,7 @@ function DiscordCommunitiesSection({
   discordData: DiscordData | null
   loading: boolean 
 }) {
-  const communities = [
+  const allCommunities = [
     {
       key: "kush",
       game: "gtarp-kush",
@@ -489,6 +489,11 @@ function DiscordCommunitiesSection({
       icon: <Globe className="w-8 h-8" />
     }
   ]
+
+  // So mostra communities que existem no banco
+  const communities = allCommunities.filter(c => 
+    discordData?.communities?.some(d => d.game === c.game || d.code === c.code)
+  )
 
   return (
     <motion.div
@@ -830,25 +835,27 @@ export function GtarpPagePremium() {
             </motion.div>
           </motion.div>
 
-          {/* Servers Grid - Com Vídeo */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            {/* KUSH PVP */}
-            <ServerCardWithVideo
-              server={kushServer}
-              discord={kushDiscord}
-              isVertical={true}
-              loading={loading}
-              discordLoading={discordLoading}
-            />
+          {/* Servers Grid - Dinâmico */}
+          <div className={`grid grid-cols-1 ${kushServer && flowServer ? 'lg:grid-cols-2' : ''} gap-8 mb-12`}>
+            {kushServer && (
+              <ServerCardWithVideo
+                server={kushServer}
+                discord={kushDiscord}
+                isVertical={true}
+                loading={loading}
+                discordLoading={discordLoading}
+              />
+            )}
 
-            {/* Flow RP */}
-            <ServerCardWithVideo
-              server={flowServer}
-              discord={flowDiscord}
-              isVertical={false}
-              loading={loading}
-              discordLoading={discordLoading}
-            />
+            {flowServer && (
+              <ServerCardWithVideo
+                server={flowServer}
+                discord={flowDiscord}
+                isVertical={false}
+                loading={loading}
+                discordLoading={discordLoading}
+              />
+            )}
           </div>
 
           {/* Discord Communities */}

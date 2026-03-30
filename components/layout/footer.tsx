@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { Twitter, Instagram, Twitch, Youtube, Facebook, ChevronDown, Globe } from "lucide-react"
@@ -99,6 +100,21 @@ export function Footer() {
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([])
   const [footerSections, setFooterSections] = useState(fallbackSections)
   const [loadedFromDb, setLoadedFromDb] = useState(false)
+  const [showAgencyCard, setShowAgencyCard] = useState(false)
+  const agencyCardRef = useRef<HTMLDivElement>(null)
+
+  // Fechar card ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (agencyCardRef.current && !agencyCardRef.current.contains(e.target as Node)) {
+        setShowAgencyCard(false)
+      }
+    }
+    if (showAgencyCard) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [showAgencyCard])
 
   // Buscar colunas do footer do banco
   useEffect(() => {
@@ -284,7 +300,57 @@ export function Footer() {
       <div className="border-t border-border">
         <div className="container mx-auto px-4 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-muted-foreground text-xs md:text-sm">
-            © {new Date().getFullYear()} Galorys. Todos os direitos reservados.
+            © {new Date().getFullYear()} Galorys{" "}
+            <span className="mx-1 opacity-40">|</span>{" "}
+            <span className="relative inline-block" ref={agencyCardRef}>
+              <button
+                onClick={() => setShowAgencyCard(!showAgencyCard)}
+                className="text-muted-foreground/60 hover:text-galorys-purple transition-colors duration-200 cursor-pointer"
+              >
+                ASDigitals
+              </button>
+              <AnimatePresence>
+                {showAgencyCard && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50 w-[280px]"
+                  >
+                    <div className="rounded-xl border border-galorys-purple/30 bg-background/95 backdrop-blur-md shadow-lg shadow-black/20 p-4">
+                      {/* Seta inferior */}
+                      <div className="absolute -bottom-[6px] left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-background/95 border-r border-b border-galorys-purple/30" />
+
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-galorys-purple/15 border border-galorys-purple/40 flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-galorys-purple">AS</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground leading-tight">Agência Soluções Digitais</p>
+                          <p className="text-[11px] text-muted-foreground">Desenvolvimento Web & E-commerce</p>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                        Criamos lojas, plataformas e sistemas sob medida para o seu negócio digital.
+                      </p>
+
+                      <a
+                        href="https://www.agenciasolucoesdigitais.com.br/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-galorys-purple border border-galorys-purple/40 rounded-full px-4 py-1.5 hover:bg-galorys-purple/10 transition-colors duration-200"
+                      >
+                        Visitar site
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      </a>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </span>
+            . Todos os direitos reservados.
           </p>
           <Link href="/" className="flex items-center gap-1.5">
             <div className="w-5 h-5 rounded bg-transparent border border-galorys-purple p-0.5 flex items-center justify-center">
